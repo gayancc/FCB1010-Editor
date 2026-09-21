@@ -283,9 +283,12 @@ public sealed class FcbFootswitchControl : Control
     {
         base.OnPointerReleased(e);
         if (!IsPressed) return;
+        // GetPosition(this) is local to this control; Bounds is in the parent's
+        // coordinate space. Comparing the two prevented most switch clicks.
+        var releasedInside = new Rect(Bounds.Size).Contains(e.GetPosition(this));
         IsPressed = false;
         e.Pointer.Capture(null);
-        if (Bounds.Contains(e.GetPosition(this)) && Command?.CanExecute(CommandParameter) == true)
+        if (releasedInside && Command?.CanExecute(CommandParameter) == true)
             Command.Execute(CommandParameter);
         e.Handled = true;
         InvalidateVisual();

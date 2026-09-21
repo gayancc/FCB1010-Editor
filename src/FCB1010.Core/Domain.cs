@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FCB1010.Core;
@@ -14,6 +15,15 @@ public sealed class FcbConfiguration
     public Dictionary<int, string> PresetNotes { get; set; } = [];
     [JsonIgnore] public byte[]? SourceSysEx { get; set; }
     public string? SourceDescription { get; set; }
+
+    /// <summary>Clone editor state without dropping the raw dump hidden from project JSON.</summary>
+    public FcbConfiguration DeepClone()
+    {
+        var clone = JsonSerializer.Deserialize<FcbConfiguration>(JsonSerializer.Serialize(this))
+            ?? throw new InvalidOperationException("Could not clone FCB1010 configuration.");
+        clone.SourceSysEx = SourceSysEx?.ToArray();
+        return clone;
+    }
 
     public FcbPreset GetPreset(int bank, int footswitch)
     {

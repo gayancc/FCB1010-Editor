@@ -74,8 +74,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private FcbConfiguration _config = CreateDemo();
     private FcbConfiguration? _deviceSnapshot;
     private FcbConfiguration _savedSnapshot = CreateDemo();
-    private readonly Stack<string> _undo = new();
-    private readonly Stack<string> _redo = new();
+    private readonly Stack<FcbConfiguration> _undo = new();
+    private readonly Stack<FcbConfiguration> _redo = new();
     private bool _loading;
     private string? _currentPath;
     private FirmwareProbeResult? _firmwareProbe;
@@ -201,7 +201,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             foreach (var p in _transport.GetInputPorts()) InputPorts.Add(p);
             foreach (var p in _transport.GetOutputPorts()) OutputPorts.Add(p);
             SelectedInput ??= InputPorts.FirstOrDefault();
-            SelectedOutput ??= OutputPorts.FirstOrDefault();
+            // Prefer the matching hardware endpoint; Windows often lists the GS synth first.
+            SelectedOutput ??= OutputPorts.FirstOrDefault(p =>
+                p.Name.Contains("FCB1010", StringComparison.OrdinalIgnoreCase))
+                ?? OutputPorts.FirstOrDefault(p =>
+                    !p.Name.Contains("Microsoft GS Wavetable", StringComparison.OrdinalIgnoreCase))
+                ?? OutputPorts.FirstOrDefault();
             StatusMessage = $"Found {InputPorts.Count} MIDI input(s) and {OutputPorts.Count} MIDI output(s).";
         }
         catch (Exception ex) { StatusMessage = "MIDI discovery failed: " + ex.Message; }
@@ -220,6 +225,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             if (SelectedInput is null || SelectedOutput is null)
                 throw new InvalidOperationException("Choose both MIDI IN and OUT ports.");
+            _device.ResetSession();
             await _transport.ConnectAsync(SelectedInput.Id, SelectedOutput.Id);
             InputPortLabel = ShortPort(SelectedInput.Name);
             OutputPortLabel = ShortPort(SelectedOutput.Name);
@@ -240,6 +246,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private async Task DisconnectAsync()
     {
         await _transport.DisconnectAsync();
+        _device.ResetSession();
         if (Mode == EditorMode.Live)
         {
             Mode = EditorMode.Edit;
@@ -324,7 +331,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         var path = await _dialogs.SaveFileAsync("Save As", "project.fcbproject", FileTypes.Project, FileTypes.SysEx);
         if (path is null) return;
-        _currentPath = path;
         await SaveToAsync(path);
     }
 
@@ -334,6 +340,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             if (path.EndsWith(".syx", StringComparison.OrdinalIgnoreCase)) await ProjectPersistence.SaveSysExAsync(path, _config);
             else await ProjectPersistence.SaveProjectAsync(path, _config);
+            _currentPath = path;
             _savedSnapshot = Clone(_config);
             StatusMessage = "Saved " + path;
             RefreshSync();
@@ -341,8 +348,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         catch (Exception ex) { await _dialogs.AlertAsync("Save failed", ex.Message); }
     }
 
-    [RelayCommand] private void Undo() { if (_undo.Count == 0) return; _redo.Push(JsonSerializer.Serialize(_config)); _config = JsonSerializer.Deserialize<FcbConfiguration>(_undo.Pop())!; RefreshAll(); }
-    [RelayCommand] private void Redo() { if (_redo.Count == 0) return; _undo.Push(JsonSerializer.Serialize(_config)); _config = JsonSerializer.Deserialize<FcbConfiguration>(_redo.Pop())!; RefreshAll(); }
+    [RelayCommand] private void Undo() { if (_undo.Count == 0) return; _redo.Push(Clone(_config)); _config = _undo.Pop(); RefreshAll(); }
+    [RelayCommand] private void Redo() { if (_redo.Count == 0) return; _undo.Push(Clone(_config)); _config = _redo.Pop(); RefreshAll(); }
     [RelayCommand(CanExecute = nameof(CanDeviceIo))]
     private void ToggleLive()
     {
@@ -544,7 +551,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
 
         // Only reshuffle active/idle lists when membership changes — rebucketing on every
-        // Primary/Secondary edit steals focus from NumericUpDown while typing.
+        // Primary/Secondary edit steals focus from scrub fields while typing.
         if (NeedsRebucket(item))
             RebucketMidiActions();
 
@@ -767,19 +774,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         HasChanges = PendingChanges.Count > 0;
     }
 
-    private void RefreshSync()
-    {
-        RefreshChanges();
-        var baseline = _deviceSnapshot;
-        if (baseline is null) DeviceSync = "NO SNAPSHOT";
-        else DeviceSync = PendingChanges.Count == 0 ? "SYNCED" : "OUT OF SYNC";
-        EditorSync = PendingChanges.Count == 0 ? "CLEAN" : $"{PendingChanges.Count} CHANGES";
-        var projectDirty = JsonSerializer.Serialize(_config) != JsonSerializer.Serialize(_savedSnapshot);
-        ProjectSync = projectDirty ? "NOT SAVED" : (_currentPath is null ? "LOCAL" : "SAVED");
-        CanUndo = _undo.Count > 0;
-        CanRedo = _redo.Count > 0;
-    }
-
     private void RefreshMap()
     {
         for (var i = 0; i < 100; i++)
@@ -797,19 +791,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void RefreshHex()
     {
         HexRows.Clear();
-        var bytes = _config.SourceSysEx;
-        if (bytes is null)
+        if (_config.SourceSysEx is null)
         {
             RawHex = "No SysEx dump in memory. Read the device or open a .syx to inspect bytes.";
             return;
         }
 
+        byte[] bytes;
         byte[] decoded;
-        try { decoded = FcbSysExCodec.Decode(bytes); }
+        try { bytes = FcbSysExCodec.Serialize(_config); decoded = FcbSysExCodec.Decode(bytes); }
         catch (Exception ex) { RawHex = "Decode failed: " + ex.Message; return; }
 
-        var compareDecoded = _deviceSnapshot?.SourceSysEx is { } snap
-            ? FcbSysExCodec.Decode(snap)
+        var compareDecoded = _deviceSnapshot?.SourceSysEx is not null
+            ? FcbSysExCodec.Decode(FcbSysExCodec.Serialize(_deviceSnapshot))
             : null;
 
         // Show selected preset (16 bytes) + globals + any reserved diffs.
@@ -852,13 +846,64 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         return string.Join('\n', lines);
     }
 
+    private long _lastSnapshotTick;
+    private long _lastHeavySyncTick;
+    private int _syncGate;
+
     private void Snapshot()
     {
         if (_loading) return;
-        _undo.Push(JsonSerializer.Serialize(_config));
+        // Coalesce rapid scrub/nudge into one undo frame.
+        var now = Environment.TickCount64;
+        if (now - _lastSnapshotTick < 350 && _undo.Count > 0)
+            return;
+        _lastSnapshotTick = now;
+        _undo.Push(Clone(_config));
         _redo.Clear();
         CanUndo = true;
         CanRedo = false;
+    }
+
+    private void RefreshSync()
+    {
+        var now = Environment.TickCount64;
+        if (now - _lastHeavySyncTick < 120)
+        {
+            CanUndo = _undo.Count > 0;
+            CanRedo = _redo.Count > 0;
+            var gate = Interlocked.Increment(ref _syncGate);
+            _ = FlushSyncSoonAsync(gate);
+            return;
+        }
+        FlushRefreshSync();
+    }
+
+    private async Task FlushSyncSoonAsync(int gate)
+    {
+        try
+        {
+            await Task.Delay(160);
+            if (gate != Volatile.Read(ref _syncGate)) return;
+            FlushRefreshSync();
+        }
+        catch
+        {
+            // ignore shutdown races
+        }
+    }
+
+    private void FlushRefreshSync()
+    {
+        _lastHeavySyncTick = Environment.TickCount64;
+        RefreshChanges();
+        var baseline = _deviceSnapshot;
+        if (baseline is null) DeviceSync = "NO SNAPSHOT";
+        else DeviceSync = PendingChanges.Count == 0 ? "SYNCED" : "OUT OF SYNC";
+        EditorSync = PendingChanges.Count == 0 ? "CLEAN" : $"{PendingChanges.Count} CHANGES";
+        var projectDirty = JsonSerializer.Serialize(_config) != JsonSerializer.Serialize(_savedSnapshot);
+        ProjectSync = projectDirty ? "NOT SAVED" : (_currentPath is null ? "LOCAL" : "SAVED");
+        CanUndo = _undo.Count > 0;
+        CanRedo = _redo.Count > 0;
     }
 
     private void ApplyTransportState(TransportState state)
@@ -939,7 +984,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         return name.Length > 12 ? name[..10] + "…" : name;
     }
 
-    private static FcbConfiguration Clone(FcbConfiguration c) => JsonSerializer.Deserialize<FcbConfiguration>(JsonSerializer.Serialize(c))!;
+    private static FcbConfiguration Clone(FcbConfiguration c) => c.DeepClone();
 
     private static FcbPreset ClonePreset(FcbPreset p) =>
         JsonSerializer.Deserialize<FcbPreset>(JsonSerializer.Serialize(p))!;

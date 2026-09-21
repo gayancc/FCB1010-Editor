@@ -5,3 +5,18 @@ TestResults/
 artifacts/
 *.user
 *.suo
+
+# Local / AI / planning (not published)
+.cursor/
+.claude/
+.codex/
+.idea/
+AGENTS.md
+CLAUDE.md
+.github/copilot-instructions.md
+docs/
+research/
+hardware-captures/
+screenshot.png
+**/CopilotSnapshots/
+**/copilot-chat/

@@ -15,6 +15,7 @@ public sealed class FcbDeviceService(IMidiTransport transport, string backupDire
     private readonly SemaphoreSlim _gate = new(1, 1);
     private byte[]? _lastReceived;
     public byte[]? LastReceived => _lastReceived?.ToArray();
+    public void ResetSession() => _lastReceived = null;
 
     /// <summary>Production default is Full. Chunked framing is hardware-observed (cmd 50→10) but assembly on WIDI is not yet verified byte-exact.</summary>
     public DumpTransferMode PreferredReadMode { get; set; } = DumpTransferMode.Full;
@@ -75,12 +76,20 @@ public sealed class FcbDeviceService(IMidiTransport transport, string backupDire
                     "Chunked write is intentionally disabled until a ControlCenter-compatible assembly/split is hardware-proven. Use Full 2,352-byte write.");
 
             var bytes = FcbSysExCodec.Serialize(config);
-            if (_lastReceived is not null)
+            // Never send without a recoverable image of the device. UnO can provide
+            // a fresh upload; stock firmware requires a prior manual SysEx upload.
+            if (config.Firmware != FirmwareFamily.Stock)
             {
-                Directory.CreateDirectory(backupDirectory);
-                var path = Path.Combine(backupDirectory, $"FCB1010-{DateTime.Now:yyyyMMdd-HHmmss-fff}.syx");
-                await File.WriteAllBytesAsync(path, _lastReceived, ct);
+                var beforeWrite = await ReceiveFullDumpAsync(TimeSpan.FromSeconds(12), config.Firmware,
+                    requestUpload: true, ct);
+                if (!beforeWrite.Completed || beforeWrite.Data is null)
+                    return new(false, null, "Write cancelled: a fresh device backup could not be read. " + beforeWrite.Message);
             }
+            if (_lastReceived is null)
+                return new(false, null, "Write cancelled: no device dump is available for backup. Read the pedal first (stock firmware: use GLOBAL CONFIG → SYSEX SEND). ");
+            Directory.CreateDirectory(backupDirectory);
+            var path = Path.Combine(backupDirectory, $"FCB1010-{DateTime.Now:yyyyMMdd-HHmmss-fff}.syx");
+            await File.WriteAllBytesAsync(path, _lastReceived, ct);
 
             await transport.SendSysExAsync(bytes, ct);
             await Task.Delay(PostWriteSettle, ct);
@@ -143,7 +152,13 @@ public sealed class FcbDeviceService(IMidiTransport transport, string backupDire
     private async Task<SysExTransferResult> ReceiveFullDumpAsync(TimeSpan timeout, FirmwareFamily family, bool requestUpload, CancellationToken ct)
     {
         var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        void Handler(object? _, byte[] data) { if (data.Length == FcbSysExCodec.DumpLength) tcs.TrySetResult(data); }
+        var observedLength = 0;
+        void Handler(object? _, byte[] data)
+        {
+            if (data.Length >= 7 && data.AsSpan(0, 6).SequenceEqual(FullDumpRequest.AsSpan(0, 6)))
+                observedLength = data.Length;
+            if (data.Length == FcbSysExCodec.DumpLength) tcs.TrySetResult(data);
+        }
         transport.SysExReceived += Handler;
         try
         {
@@ -155,10 +170,16 @@ public sealed class FcbDeviceService(IMidiTransport transport, string backupDire
             _lastReceived = data.ToArray();
             return new(true, data, $"Received and validated a complete {data.Length:N0}-byte FCB1010 dump.");
         }
+        catch (SysExFormatException ex)
+        {
+            return new(false, null, "A full-length FCB1010 dump arrived, but validation failed: " + ex.Message);
+        }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             return new(false, null,
-                $"No complete 2,352-byte FCB1010 dump was received within {timeout.TotalSeconds:0} seconds. UnO supports automatic upload via 4F; stock firmware requires GLOBAL CONFIG → SYSEX SEND (switch 6).");
+                $"No complete 2,352-byte FCB1010 dump was received within {timeout.TotalSeconds:0} seconds." +
+                (observedLength > 0 ? $" A {observedLength}-byte FCB1010 SysEx message was observed." : " No candidate FCB1010 SysEx message arrived.") +
+                " UnO supports automatic upload via 4F; stock firmware requires GLOBAL CONFIG → SYSEX SEND (switch 6).");
         }
         finally { transport.SysExReceived -= Handler; }
     }

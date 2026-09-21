@@ -7,6 +7,7 @@
         x:Class="FCB1010.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="FCB1010 Studio"
+        Icon="/Assets/app.ico"
         Width="1600" Height="780"
         MinWidth="1200" MinHeight="640"
         WindowStartupLocation="CenterScreen"
@@ -202,8 +203,8 @@
                                          Foreground="{DynamicResource StageTeal}" Text="{Binding SlotLabel}"
                                          VerticalAlignment="Center"/>
                               <TextBlock Classes="midi" Text="{Binding ChannelLabel}" VerticalAlignment="Center"/>
-                              <NumericUpDown Classes="compact value" Width="52" Minimum="0" Maximum="127"
-                                             Value="{Binding Primary}" FormatString="000"/>
+                              <ctrl:ScrubValueField Width="44" Minimum="0" Maximum="127"
+                                                    Value="{Binding Primary, Mode=TwoWay}" FormatString="000"/>
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -244,10 +245,10 @@
                               <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
                                          Foreground="{DynamicResource StageAmber}" Text="{Binding SlotLabel}"
                                          VerticalAlignment="Center"/>
-                              <NumericUpDown Classes="compact value" Width="44" Minimum="0" Maximum="127"
-                                             Value="{Binding Primary}" FormatString="000" ToolTip.Tip="CC#"/>
-                              <NumericUpDown Classes="compact value" Width="44" Minimum="0" Maximum="127"
-                                             Value="{Binding Secondary}" FormatString="000" ToolTip.Tip="Value"/>
+                              <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                    Value="{Binding Primary, Mode=TwoWay}" FormatString="000" ToolTip.Tip="CC# · drag ↕ · dbl-click"/>
+                              <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                    Value="{Binding Secondary, Mode=TwoWay}" FormatString="000" ToolTip.Tip="Value · drag ↕ · dbl-click"/>
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -281,8 +282,8 @@
                                 <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
                                 <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
                                            Foreground="#E8D5A3" Text="NOTE" VerticalAlignment="Center"/>
-                                <NumericUpDown Classes="compact value" Width="52" Minimum="0" Maximum="127"
-                                               Value="{Binding Primary}" FormatString="000"/>
+                                <ctrl:ScrubValueField Width="44" Minimum="0" Maximum="127"
+                                                      Value="{Binding Primary, Mode=TwoWay}" FormatString="000"/>
                               </StackPanel>
                             </Border>
                             <Button Classes="ghostAdd" Height="32" Content="+ NOTE" IsVisible="{Binding !Enabled}"
@@ -311,22 +312,22 @@
                           <TextBlock Classes="laneLabel" Text="EXP A" Foreground="{DynamicResource StageAmber}"/>
                           <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
                                      Text="CC" VerticalAlignment="Center"/>
-                          <NumericUpDown Classes="compact value" Width="48" Minimum="0" Maximum="127"
-                                         Value="{Binding ExpressionAController}" FormatString="000"
-                                         IsEnabled="{Binding ExpressionAEnabled}"/>
+                          <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                Value="{Binding ExpressionAController, Mode=TwoWay}" FormatString="000"
+                                                IsEnabled="{Binding ExpressionAEnabled}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
-                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
-                                           Value="{Binding ExpressionAMin}" FormatString="000"
-                                           IsEnabled="{Binding ExpressionAEnabled}"/>
+                            <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  Value="{Binding ExpressionAMin, Mode=TwoWay}" FormatString="000"
+                                                  IsEnabled="{Binding ExpressionAEnabled}"/>
                           </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
-                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
-                                           Value="{Binding ExpressionAMax}" FormatString="000"
-                                           IsEnabled="{Binding ExpressionAEnabled}"/>
+                            <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  Value="{Binding ExpressionAMax, Mode=TwoWay}" FormatString="000"
+                                                  IsEnabled="{Binding ExpressionAEnabled}"/>
                           </StackPanel>
                         </StackPanel>
                       </StackPanel>
@@ -347,22 +348,22 @@
                           <TextBlock Classes="laneLabel" Text="EXP B" Foreground="{DynamicResource StageTeal}"/>
                           <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
                                      Text="CC" VerticalAlignment="Center"/>
-                          <NumericUpDown Classes="compact value" Width="48" Minimum="0" Maximum="127"
-                                         Value="{Binding ExpressionBController}" FormatString="000"
-                                         IsEnabled="{Binding ExpressionBEnabled}"/>
+                          <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                Value="{Binding ExpressionBController, Mode=TwoWay}" FormatString="000"
+                                                IsEnabled="{Binding ExpressionBEnabled}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
-                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
-                                           Value="{Binding ExpressionBMin}" FormatString="000"
-                                           IsEnabled="{Binding ExpressionBEnabled}"/>
+                            <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  Value="{Binding ExpressionBMin, Mode=TwoWay}" FormatString="000"
+                                                  IsEnabled="{Binding ExpressionBEnabled}"/>
                           </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
-                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
-                                           Value="{Binding ExpressionBMax}" FormatString="000"
-                                           IsEnabled="{Binding ExpressionBEnabled}"/>
+                            <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  Value="{Binding ExpressionBMax, Mode=TwoWay}" FormatString="000"
+                                                  IsEnabled="{Binding ExpressionBEnabled}"/>
                           </StackPanel>
                         </StackPanel>
                       </StackPanel>
@@ -450,7 +451,8 @@
                   <Border Grid.Column="1" Height="1" Background="#1A1E22" VerticalAlignment="Center" Margin="8,0"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <TextBlock Classes="micro" Text="CH" VerticalAlignment="Center"/>
-                    <NumericUpDown Classes="compact" Width="44" Minimum="1" Maximum="16" Value="{Binding Channel}" FormatString="00"/>
+                    <ctrl:ScrubValueField Classes="compact" Width="32" Minimum="1" Maximum="16"
+                                          Value="{Binding Channel, Mode=TwoWay}" FormatString="00"/>
                   </StackPanel>
                 </Grid>
               </DataTemplate>

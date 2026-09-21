@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <None Include="..\fixtures\**\*" Link="fixtures\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\hardware-captures\FCB1010-UnO-hardware-20260921-132357.syx" Link="fixtures\uno\FCB1010-UnO-hardware.syx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

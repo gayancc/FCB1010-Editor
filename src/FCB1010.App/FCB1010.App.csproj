@@ -5,15 +5,24 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>FCB1010Studio</AssemblyName>
+    <RootNamespace>FCB1010.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <Version>0.1.0</Version>
+    <AssemblyTitle>FCB1010 Studio</AssemblyTitle>
+    <Product>FCB1010 Studio</Product>
+    <Company>FCB1010 Studio</Company>
+    <Description>Free open-source Behringer FCB1010 editor with regular UnO support.</Description>
   </PropertyGroup>
 
-  <!-- Apply only during `dotnet publish` (package.ps1 passes -r win-x64). Do not force RID on normal builds — that breaks VS. -->
-  <PropertyGroup Condition="'$(PublishProtocol)' != '' or '$(DeployOnBuild)' == 'true'">
+  <!-- Self-contained single-file exe for `dotnet publish -r win-x64` / package.ps1 / CI. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +42,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets/app.ico" />
+    <AvaloniaResource Include="Assets/app-icon-256.png" />
     <AvaloniaResource Include="Assets/fcb1010-device.png" />
     <AvaloniaResource Include="Assets/ref/exp-pedal-ref.png" />
     <AvaloniaResource Include="Assets/ref/footswitch-ref.png" />

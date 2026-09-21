@@ -141,6 +141,20 @@ public sealed class ProtocolTests
     }
 
     [Fact]
+    public void Editor_clone_preserves_raw_dump_and_unknown_bytes_through_undo_style_restore()
+    {
+        var original = UnoFixture();
+        var config = FcbSysExCodec.Parse(original, FirmwareFamily.UnO);
+        var undo = config.DeepClone();
+        config.Presets[0].ProgramChanges[0].Program = 99;
+        Assert.NotSame(config.SourceSysEx, undo.SourceSysEx);
+        Assert.Equal(original, undo.SourceSysEx);
+        Assert.Equal(original, FcbSysExCodec.Serialize(undo));
+        Assert.True(FcbSysExCodec.Decode(original).AsSpan(1600, 416).SequenceEqual(
+            FcbSysExCodec.Decode(FcbSysExCodec.Serialize(config)).AsSpan(1600, 416)));
+    }
+
+    [Fact]
     public void Live_preview_emits_documented_message_order()
     {
         var config = FcbSysExCodec.Parse(UnoFixture(), FirmwareFamily.UnO);

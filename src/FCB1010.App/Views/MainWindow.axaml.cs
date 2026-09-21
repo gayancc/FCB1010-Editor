@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using FCB1010.App.Controls;
 using FCB1010.App.ViewModels;
 
 namespace FCB1010.App.Views;
@@ -15,8 +16,8 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
 
-        // Don't steal keys from text/numeric editors.
-        if (e.Source is TextBox or NumericUpDown) return;
+        // Don't steal keys from text / scrub-value editors.
+        if (e.Source is TextBox or ScrubValueField) return;
 
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
         {
