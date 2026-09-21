@@ -1,0 +1,7 @@
+{
+  "firmware": "Stock FCB1010 (repository label; exact chip version not independently verified)",
+  "source": "trafficpest/fcbtool dumps/v-amp.syx, MIT licensed",
+  "expectedConfiguration": "Factory V-AMP family reset dump",
+  "dateCaptured": "unknown",
+  "verification": "Valid 2352-byte FCB1010 envelope; hardware origin asserted by upstream"
+}

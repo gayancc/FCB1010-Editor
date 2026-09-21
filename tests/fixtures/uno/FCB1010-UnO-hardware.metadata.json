@@ -1,0 +1,21 @@
+{
+  "id": "uno-hardware-20260921",
+  "source": "Physical Behringer FCB1010 with regular UnO firmware",
+  "firmware": "Regular UnO (probe signature 09 0E)",
+  "acquisition": "SysEx request F0 00 20 32 01 0C 4F F7 over CME WIDI (FCB1010 IN/OUT)",
+  "interface": "CME WIDI / BLE MIDI as Windows MIDI ports",
+  "files": {
+    "baseline": "../../hardware-captures/FCB1010-UnO-hardware-20260921-132357.syx",
+    "live": "../../hardware-captures/FCB1010-UnO-live-20260921-151023.syx",
+    "testCopy": "FCB1010-UnO-hardware.syx (copied into test output from baseline)"
+  },
+  "sha256_baseline": "E180D1DA289A949788B76391271192187121282233CC2F0EC391F4505EA228E1",
+  "expectedSettings": {
+    "midiChannels": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    "runningStatus": true,
+    "directSelect": true,
+    "notes": "Reserved region 0x640-0x7DF all 0xFF — UnO stomp/alternate features not programmed in this dump"
+  },
+  "verificationStatus": "HARDWARE_VERIFIED_COMMON_FIELDS",
+  "unverified": ["stompbox byte map", "alternate CC offsets", "tri-state relay/expression encoding", "chunked dump reassembly"]
+}

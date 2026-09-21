@@ -1,0 +1,458 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    FCB1010 Studio design system — compact desktop creative tooling.
+    Spacing scale: 2 / 4 / 6 / 8 / 12 / 16 / 24
+    Control heights: micro 22 · command 26 · prominent 30
+  -->
+
+  <Styles.Resources>
+    <SolidColorBrush x:Key="BgApp" Color="#070809"/>
+    <SolidColorBrush x:Key="BgChrome" Color="#0E1012"/>
+    <SolidColorBrush x:Key="BgPanel" Color="#0A0C0E"/>
+    <SolidColorBrush x:Key="BgElevated" Color="#14181C"/>
+    <SolidColorBrush x:Key="BgInput" Color="#0C0E10"/>
+    <SolidColorBrush x:Key="BorderSubtle" Color="#1A1E22"/>
+    <SolidColorBrush x:Key="BorderDefault" Color="#252A2F"/>
+    <SolidColorBrush x:Key="BorderStrong" Color="#343A40"/>
+    <SolidColorBrush x:Key="FgPrimary" Color="#E6EAED"/>
+    <SolidColorBrush x:Key="FgSecondary" Color="#8B949C"/>
+    <SolidColorBrush x:Key="FgMuted" Color="#5A636A"/>
+    <SolidColorBrush x:Key="FgMicro" Color="#454C52"/>
+    <SolidColorBrush x:Key="AccentRed" Color="#E02430"/>
+    <SolidColorBrush x:Key="AccentAmber" Color="#E8A03A"/>
+    <SolidColorBrush x:Key="AccentCyan" Color="#6A9EAA"/>
+    <SolidColorBrush x:Key="AccentGreen" Color="#3DBA72"/>
+    <SolidColorBrush x:Key="AccentWrite" Color="#8A1820"/>
+    <FontFamily x:Key="FontUi">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="FontMono">Cascadia Mono, Consolas, Courier New</FontFamily>
+    <x:Double x:Key="Space1">2</x:Double>
+    <x:Double x:Key="Space2">4</x:Double>
+    <x:Double x:Key="Space3">6</x:Double>
+    <x:Double x:Key="Space4">8</x:Double>
+    <x:Double x:Key="Space5">12</x:Double>
+    <x:Double x:Key="Space6">16</x:Double>
+    <x:Double x:Key="HCmd">26</x:Double>
+    <x:Double x:Key="HInput">24</x:Double>
+    <x:Double x:Key="HSeg">22</x:Double>
+    <CornerRadius x:Key="RadiusHard">2</CornerRadius>
+    <CornerRadius x:Key="RadiusCtrl">3</CornerRadius>
+    <SolidColorBrush x:Key="StageVoid" Color="#050607"/>
+    <SolidColorBrush x:Key="StagePlate" Color="#0B0D10"/>
+    <SolidColorBrush x:Key="StageRail" Color="#15181C"/>
+    <SolidColorBrush x:Key="StageAmber" Color="#FF9F1C"/>
+    <SolidColorBrush x:Key="StageSignal" Color="#FF3B4A"/>
+    <SolidColorBrush x:Key="StageTeal" Color="#2EC4B6"/>
+    <SolidColorBrush x:Key="StageInk" Color="#9AA3AB"/>
+    <FontFamily x:Key="FontDisplay">Bahnschrift, Segoe UI Variable Display, Segoe UI</FontFamily>
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource BgApp}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontUi}"/>
+    <Setter Property="FontSize" Value="12"/>
+  </Style>
+
+  <!-- —— Typography roles —— -->
+  <Style Selector="TextBlock.appTitle">
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+  </Style>
+  <Style Selector="TextBlock.workspace">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+    <Setter Property="LetterSpacing" Value="0.8"/>
+    <Setter Property="Margin" Value="0,8,0,4"/>
+  </Style>
+  <Style Selector="TextBlock.micro">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+    <Setter Property="LetterSpacing" Value="0.6"/>
+  </Style>
+  <Style Selector="TextBlock.midi">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+  </Style>
+  <Style Selector="TextBlock.param">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
+  </Style>
+  <Style Selector="TextBlock.numPrimary">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="16"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentAmber}"/>
+  </Style>
+  <Style Selector="TextBlock.numAccent">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="16"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentRed}"/>
+  </Style>
+  <Style Selector="TextBlock.numDisplay">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="18"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="TextBlock.status">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+  </Style>
+
+  <!-- —— Command deck buttons —— -->
+  <Style Selector="Button.deck">
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Background" Value="{DynamicResource BgElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusCtrl}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
+  </Style>
+  <Style Selector="Button.deck:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#1C2228"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+  </Style>
+  <Style Selector="Button.deck.primary">
+    <Setter Property="Background" Value="{DynamicResource AccentWrite}"/>
+    <Setter Property="BorderBrush" Value="#C42832"/>
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+  <Style Selector="Button.deck.active">
+    <Setter Property="Foreground" Value="{DynamicResource AccentAmber}"/>
+    <Setter Property="Background" Value="#1A1510"/>
+    <Setter Property="BorderBrush" Value="#5A4020"/>
+  </Style>
+  <Style Selector="Button.deck.icon">
+    <Setter Property="Width" Value="26"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+
+  <!-- Command deck — link-aware chrome -->
+  <Style Selector="Border.linkBadge">
+    <Setter Property="Background" Value="#14181C"/>
+    <Setter Property="BorderBrush" Value="#2A3038"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="10"/>
+    <Setter Property="Padding" Value="10,4"/>
+  </Style>
+  <Style Selector="Border.linkBadge.online">
+    <Setter Property="BorderBrush" Value="#1E4A34"/>
+    <Setter Property="Background" Value="#0C1812"/>
+  </Style>
+  <Style Selector="Border.opBay">
+    <Setter Property="Background" Value="#101418"/>
+    <Setter Property="BorderBrush" Value="#1A2026"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="8,4"/>
+  </Style>
+  <Style Selector="TextBlock.bayLabel">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="8"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="LetterSpacing" Value="1.2"/>
+    <Setter Property="Foreground" Value="#5C656E"/>
+  </Style>
+  <Style Selector="ComboBox.compact.port">
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Padding" Value="6,0"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="Background" Value="#0C0E10"/>
+    <Setter Property="BorderBrush" Value="#252A2F"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+  <Style Selector="ComboBox.compact.port:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+  <Style Selector="Button.linkBtn">
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="MinWidth" Value="72"/>
+    <Setter Property="Padding" Value="14,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="LetterSpacing" Value="1"/>
+    <Setter Property="Background" Value="#12352C"/>
+    <Setter Property="BorderBrush" Value="#2EC4B6"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Foreground" Value="#2EC4B6"/>
+  </Style>
+  <Style Selector="Button.linkBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#1A4A3C"/>
+    <Setter Property="Foreground" Value="#A8F0E8"/>
+  </Style>
+  <Style Selector="Button.linkBtn.online">
+    <Setter Property="Background" Value="#2A1810"/>
+    <Setter Property="BorderBrush" Value="#E8A03A"/>
+    <Setter Property="Foreground" Value="#E8A03A"/>
+  </Style>
+  <Style Selector="Button.linkBtn.online:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3A2218"/>
+    <Setter Property="Foreground" Value="#FFC060"/>
+  </Style>
+  <Style Selector="Button.linkBtn:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Opacity" Value="0.35"/>
+  </Style>
+  <Style Selector="Button.deck:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Opacity" Value="0.32"/>
+    <Setter Property="Background" Value="#0C0E10"/>
+    <Setter Property="Foreground" Value="#454C52"/>
+  </Style>
+
+  <!-- —— Segmented workspace switch —— -->
+  <Style Selector="Button.seg">
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusHard}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+  </Style>
+  <Style Selector="Button.seg:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
+    <Setter Property="Background" Value="#121518"/>
+  </Style>
+  <Style Selector="Button.seg.active">
+    <Setter Property="Background" Value="{DynamicResource BgElevated}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+  </Style>
+
+  <!-- —— Compact inputs —— -->
+  <Style Selector="TextBox.inline">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentCyan}"/>
+    <Setter Property="Padding" Value="0,1"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource AccentCyan}"/>
+  </Style>
+
+  <Style Selector="NumericUpDown.compact">
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="Padding" Value="4,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Background" Value="{DynamicResource BgInput}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusHard}"/>
+    <Setter Property="ShowButtonSpinner" Value="False"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="NumericUpDown.compact /template/ TextBox#PART_TextBox">
+    <Setter Property="Padding" Value="2,0"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="12"/>
+  </Style>
+  <Style Selector="NumericUpDown.compact.value">
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}"/>
+  </Style>
+  <Style Selector="NumericUpDown.compact.value /template/ TextBox#PART_TextBox">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <Style Selector="ComboBox.compact">
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Padding" Value="6,0"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="Background" Value="{DynamicResource BgElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusCtrl}"/>
+  </Style>
+
+  <Style Selector="CheckBox.compact">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="FontSize" Value="10"/>
+  </Style>
+
+  <Style Selector="ToggleButton.relay">
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Background" Value="{DynamicResource BgElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusCtrl}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+  </Style>
+  <Style Selector="ToggleButton.relay:checked">
+    <Setter Property="Background" Value="#1A1510"/>
+    <Setter Property="BorderBrush" Value="#5A4020"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentAmber}"/>
+  </Style>
+
+  <Style Selector="ListBoxItem">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Margin" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+
+  <Style Selector="ScrollViewer.inspector">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+  </Style>
+
+  <Style Selector="Button.chip">
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="7,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusHard}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgMuted}"/>
+  </Style>
+  <Style Selector="Button.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AccentCyan}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentCyan}"/>
+    <Setter Property="Background" Value="#0E1418"/>
+  </Style>
+
+  <Style Selector="Button.mapCell">
+    <Setter Property="Height" Value="36"/>
+    <Setter Property="Margin" Value="1"/>
+    <Setter Property="Padding" Value="4,2"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Background" Value="#101214"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusHard}"/>
+  </Style>
+  <Style Selector="Button.mapCell:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#181C20"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}"/>
+  </Style>
+
+  <!-- ═══ STAGE CONSOLE — bottom editor ═══ -->
+  <Style Selector="TextBlock.stageEyebrow">
+    <Setter Property="FontFamily" Value="{DynamicResource FontDisplay}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="LetterSpacing" Value="2.4"/>
+    <Setter Property="Foreground" Value="#5C656E"/>
+  </Style>
+  <Style Selector="TextBlock.stageHero">
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="42"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="LetterSpacing" Value="-1.5"/>
+  </Style>
+  <Style Selector="TextBlock.laneLabel">
+    <Setter Property="FontFamily" Value="{DynamicResource FontDisplay}"/>
+    <Setter Property="FontSize" Value="9"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="LetterSpacing" Value="1.8"/>
+    <Setter Property="Foreground" Value="#6A737C"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.midiModule">
+    <Setter Property="Background" Value="#101318"/>
+    <Setter Property="BorderBrush" Value="#222830"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Padding" Value="10,6"/>
+  </Style>
+  <Style Selector="Border.expDeck">
+    <Setter Property="Background" Value="#0E1115"/>
+    <Setter Property="BorderBrush" Value="#1E242C"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="12,10"/>
+  </Style>
+  <Style Selector="ToggleButton.relayPad">
+    <Setter Property="Width" Value="48"/>
+    <Setter Property="Height" Value="48"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Background" Value="#12161B"/>
+    <Setter Property="BorderBrush" Value="#2A313A"/>
+    <Setter Property="BorderThickness" Value="1.5"/>
+    <Setter Property="CornerRadius" Value="24"/>
+    <Setter Property="Foreground" Value="#6A737C"/>
+  </Style>
+  <Style Selector="ToggleButton.relayPad:checked">
+    <Setter Property="Background" Value="#2A1810"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource StageAmber}"/>
+    <Setter Property="Foreground" Value="{DynamicResource StageAmber}"/>
+  </Style>
+  <Style Selector="ToggleButton.relayPad:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="#4A5560"/>
+  </Style>
+  <Style Selector="Button.ghostAdd">
+    <Setter Property="Height" Value="36"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="#2A313A"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Foreground" Value="#5C656E"/>
+  </Style>
+  <Style Selector="Button.ghostAdd:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StageTeal}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource StageTeal}"/>
+    <Setter Property="Background" Value="#0A1614"/>
+  </Style>
+  <Style Selector="TextBox.stageName">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="#2EC4B644"/>
+    <Setter Property="Padding" Value="0,4"/>
+    <Setter Property="FontFamily" Value="{DynamicResource FontDisplay}"/>
+    <Setter Property="FontSize" Value="15"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="#E8EEF2"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource StageTeal}"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+</Styles>

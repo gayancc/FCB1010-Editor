@@ -1,0 +1,17 @@
+trafficpest/fcbtool
+Copyright (c) 2024 Jason March
+MIT License: https://github.com/trafficpest/fcbtool/blob/main/LICENSE
+
+riban-bw/fcb1010
+Copyright (c) 2021 Brian Walton
+MIT License: https://github.com/riban-bw/fcb1010/blob/main/LICENSE
+
+Melanchall.DryWetMidi 8.0.3
+Copyright (c) 2018 Maxim Dobrynin
+MIT License: https://github.com/melanchall/drywetmidi/blob/develop/LICENSE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of these software
+components and associated documentation files, to deal in them without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies, subject to inclusion of their respective copyright and permission notices. The software
+is provided "AS IS", without warranty of any kind.

@@ -1,0 +1,480 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FCB1010.App.ViewModels"
+        xmlns:ctrl="using:FCB1010.App.Controls"
+        xmlns:svc="using:FCB1010.App.Services"
+        xmlns:midi="using:FCB1010.Midi"
+        x:Class="FCB1010.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="FCB1010 Studio"
+        Width="1600" Height="780"
+        MinWidth="1200" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        KeyDown="OnKeyDown">
+
+  <DockPanel>
+
+    <!-- ═══ COMMAND DECK — link-aware operations bay ═══ -->
+    <Border DockPanel.Dock="Top" BorderBrush="#1A1E22" BorderThickness="0,0,0,1" Padding="10,6">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+          <GradientStop Color="#080A0C" Offset="0"/>
+          <GradientStop Color="#0C0E12" Offset="0.5"/>
+          <GradientStop Color="#080A0C" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" VerticalAlignment="Center">
+
+        <!-- Identity + link pulse -->
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Classes="appTitle" Text="FCB1010 Studio" VerticalAlignment="Center"/>
+          <Border Classes="linkBadge" Classes.online="{Binding Connected}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="6" Height="6" VerticalAlignment="Center" Fill="#3DBA72" IsVisible="{Binding Connected}"/>
+              <Ellipse Width="6" Height="6" VerticalAlignment="Center" Fill="#E8A03A" IsVisible="{Binding !Connected}"/>
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Text="{Binding ConnectionLabel}" VerticalAlignment="Center"
+                         Foreground="#E6EAED"/>
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
+                         Text="{Binding FirmwareLabel}" VerticalAlignment="Center" MaxWidth="140"
+                         TextTrimming="CharacterEllipsis"
+                         ToolTip.Tip="{Binding FirmwareLabel}"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Workspace rail -->
+        <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="#101418" CornerRadius="6" Padding="3">
+          <StackPanel Orientation="Horizontal" Spacing="0">
+            <Button Classes="seg" Content="DEVICE" Classes.active="{Binding IsTwinWorkspace}"
+                    Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Twin}"/>
+            <Button Classes="seg" Content="MAP" Classes.active="{Binding IsMapWorkspace}"
+                    Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Map}"/>
+            <Button Classes="seg" Content="ROUTING" Classes.active="{Binding IsRoutingWorkspace}"
+                    Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Routing}"/>
+            <Button Classes="seg" Content="DIAG" Classes.active="{Binding IsDiagnosticsWorkspace}"
+                    Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Diagnostics}"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Operations: ports → link → device I/O → archive -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
+
+          <!-- Port bay — locked while linked -->
+          <Border Classes="opBay" Margin="0,0,8,0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="bayLabel" Text="IN" VerticalAlignment="Center"/>
+                <ComboBox Classes="compact port" Width="140" IsEnabled="{Binding CanChangePorts}"
+                          ItemsSource="{Binding InputPorts}" SelectedItem="{Binding SelectedInput}"
+                          ToolTip.Tip="{Binding SelectedInput.Name}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="midi:MidiPortInfo">
+                      <TextBlock Text="{Binding Name}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="bayLabel" Text="OUT" VerticalAlignment="Center"/>
+                <ComboBox Classes="compact port" Width="140" IsEnabled="{Binding CanChangePorts}"
+                          ItemsSource="{Binding OutputPorts}" SelectedItem="{Binding SelectedOutput}"
+                          ToolTip.Tip="{Binding SelectedOutput.Name}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="midi:MidiPortInfo">
+                      <TextBlock Text="{Binding Name}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <ComboBox Classes="compact port" Width="88" IsEnabled="{Binding CanChangePorts}"
+                        ItemsSource="{Binding FirmwareChoices}" SelectedItem="{Binding SelectedFirmware}"
+                        ToolTip.Tip="Firmware family for SysEx"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Link control — LINK / UNLINK -->
+          <Button Classes="linkBtn" Classes.online="{Binding Connected}"
+                  Content="{Binding LinkButtonLabel}"
+                  Command="{Binding ToggleLinkCommand}"
+                  ToolTip.Tip="Establish or close the MIDI link"/>
+
+          <Border Width="1" Background="#252A2F" Margin="8,4"/>
+
+          <!-- Device I/O — gated by MIDI link (commands also CanExecute=false when offline) -->
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <Button Classes="deck" Content="READ" Command="{Binding ReadDeviceCommand}"
+                    ToolTip.Tip="Pull configuration dump from the FCB1010"/>
+            <Button Classes="deck primary" Content="WRITE" Command="{Binding WriteDeviceCommand}"
+                    ToolTip.Tip="Push editor dump to the FCB1010"/>
+            <Button Classes="deck" Content="LIVE" Classes.active="{Binding IsLiveMode}"
+                    Command="{Binding ToggleLiveCommand}"
+                    ToolTip.Tip="Preview MIDI while pressing pedals"/>
+          </StackPanel>
+
+          <Border Width="1" Background="#252A2F" Margin="8,4"/>
+
+          <!-- Archive — always available -->
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <Button Classes="deck" Content="OPEN" Command="{Binding OpenCommand}" ToolTip.Tip="Open project or SysEx"/>
+            <Button Classes="deck" Content="SAVE" Command="{Binding SaveCommand}" ToolTip.Tip="Save project"/>
+            <Button Classes="deck icon" Content="↶" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
+            <Button Classes="deck icon" Content="↷" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}"/>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ═══ WORKSPACES ═══ -->
+    <Panel>
+
+      <!-- DEVICE: photo IS the UI — docked flush, no void between device and editor -->
+      <DockPanel IsVisible="{Binding IsTwinWorkspace}">
+
+        <!-- ═══ 2. ASSEMBLED FCB1010 HARDWARE CONTROLS ═══ -->
+        <Border DockPanel.Dock="Top" Background="#0A0A0A" Padding="6,2">
+          <ctrl:Fcb1010Surface HorizontalAlignment="Stretch" MinHeight="260" MaxHeight="360"
+                               ViewModel="{Binding}"/>
+        </Border>
+
+        <!-- ═══ STAGE RACK — fixed faceplate, no scroll / no clip ═══ -->
+        <Border BorderBrush="#14181C" BorderThickness="0,1,0,0" ClipToBounds="False"
+                MinHeight="280" Padding="14,12,14,8">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+              <GradientStop Color="#050607" Offset="0"/>
+              <GradientStop Color="#0A0C0F" Offset="0.55"/>
+              <GradientStop Color="#07090B" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+
+            <!-- Main rack: identity + lanes -->
+            <Grid ColumnDefinitions="168,*" ColumnSpacing="14">
+
+              <!-- Compact stage mark -->
+              <Border Background="#080A0C" BorderBrush="#1A1F26" BorderThickness="1"
+                      CornerRadius="10" Padding="12,10" VerticalAlignment="Stretch">
+                <StackPanel>
+                  <TextBlock Classes="stageEyebrow" Text="STAGE MARK"/>
+                  <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
+                    <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="32" FontWeight="Bold"
+                               Foreground="{DynamicResource StageSignal}"
+                               Text="{Binding Bank, StringFormat={}{0:00}}"/>
+                    <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="22" FontWeight="Bold"
+                               Foreground="#2A3038" Text="·" VerticalAlignment="Center"/>
+                    <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="32" FontWeight="Bold"
+                               Foreground="{DynamicResource StageAmber}"
+                               Text="{Binding Footswitch, StringFormat={}{0:00}}"/>
+                  </StackPanel>
+                  <TextBlock Classes="stageEyebrow" Text="BANK · PRESET" Margin="0,0,0,8" Opacity="0.65"/>
+                  <Border Background="#12161B" CornerRadius="4" Padding="6,3" HorizontalAlignment="Left" Margin="0,0,0,8">
+                    <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{DynamicResource StageTeal}" Text="{Binding RoleLabel}" LetterSpacing="1"/>
+                  </Border>
+                  <TextBox Classes="stageName" Text="{Binding PresetName}" PlaceholderText="Name…" FontSize="13"/>
+                  <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" Foreground="#5C656E"
+                             Text="{Binding FlowText}" TextWrapping="Wrap" Margin="0,8,0,0" MaxLines="3"/>
+                </StackPanel>
+              </Border>
+
+              <!-- Transmit rack -->
+              <StackPanel Grid.Column="1" Spacing="10">
+
+                <!-- PROGRAM lane — wraps, never scrolls -->
+                <Grid ColumnDefinitions="76,*">
+                  <TextBlock Classes="laneLabel" Text="PROGRAM" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                  <WrapPanel Grid.Column="1" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+                    <ItemsControl ItemsSource="{Binding ProgramActionsActive}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MidiActionItemViewModel">
+                          <Border Classes="midiModule">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
+                                         Foreground="{DynamicResource StageTeal}" Text="{Binding SlotLabel}"
+                                         VerticalAlignment="Center"/>
+                              <TextBlock Classes="midi" Text="{Binding ChannelLabel}" VerticalAlignment="Center"/>
+                              <NumericUpDown Classes="compact value" Width="52" Minimum="0" Maximum="127"
+                                             Value="{Binding Primary}" FormatString="000"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding ProgramActionsIdle}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MidiActionItemViewModel">
+                          <Button Classes="ghostAdd" Height="32" Content="{Binding SlotLabel, StringFormat=+ {0}}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EnableMidiSlotCommand}"
+                                  CommandParameter="{Binding}"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </WrapPanel>
+                </Grid>
+
+                <!-- CONTROL lane -->
+                <Grid ColumnDefinitions="76,*">
+                  <TextBlock Classes="laneLabel" Text="CONTROL" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                  <WrapPanel Grid.Column="1" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+                    <ItemsControl ItemsSource="{Binding ControlActionsActive}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MidiActionItemViewModel">
+                          <Border Classes="midiModule">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
+                                         Foreground="{DynamicResource StageAmber}" Text="{Binding SlotLabel}"
+                                         VerticalAlignment="Center"/>
+                              <NumericUpDown Classes="compact value" Width="44" Minimum="0" Maximum="127"
+                                             Value="{Binding Primary}" FormatString="000" ToolTip.Tip="CC#"/>
+                              <NumericUpDown Classes="compact value" Width="44" Minimum="0" Maximum="127"
+                                             Value="{Binding Secondary}" FormatString="000" ToolTip.Tip="Value"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding ControlActionsIdle}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MidiActionItemViewModel">
+                          <Button Classes="ghostAdd" Height="32" Content="{Binding SlotLabel, StringFormat=+ {0}}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EnableMidiSlotCommand}"
+                                  CommandParameter="{Binding}"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding NoteActions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" ItemSpacing="4"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MidiActionItemViewModel">
+                          <Panel>
+                            <Border Classes="midiModule" IsVisible="{Binding Enabled}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
+                                           Foreground="#E8D5A3" Text="NOTE" VerticalAlignment="Center"/>
+                                <NumericUpDown Classes="compact value" Width="52" Minimum="0" Maximum="127"
+                                               Value="{Binding Primary}" FormatString="000"/>
+                              </StackPanel>
+                            </Border>
+                            <Button Classes="ghostAdd" Height="32" Content="+ NOTE" IsVisible="{Binding !Enabled}"
+                                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EnableMidiSlotCommand}"
+                                    CommandParameter="{Binding}"/>
+                          </Panel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </WrapPanel>
+                </Grid>
+
+                <!-- Expression + contact — fixed height bay, nothing clipped -->
+                <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="10" MinHeight="108">
+                  <Border Classes="expDeck" ClipToBounds="False" MinHeight="100" Padding="10,8">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                      <ctrl:ExpValueDial Width="64" Height="64"
+                                         Value="{Binding ExpressionAValue}"
+                                         Minimum="{Binding ExpressionAMin}"
+                                         Maximum="{Binding ExpressionAMax}"
+                                         Accent="#FF9F1C" Caption="LIVE"
+                                         VerticalAlignment="Center"/>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionAEnabled}" VerticalAlignment="Center"/>
+                          <TextBlock Classes="laneLabel" Text="EXP A" Foreground="{DynamicResource StageAmber}"/>
+                          <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
+                                     Text="CC" VerticalAlignment="Center"/>
+                          <NumericUpDown Classes="compact value" Width="48" Minimum="0" Maximum="127"
+                                         Value="{Binding ExpressionAController}" FormatString="000"
+                                         IsEnabled="{Binding ExpressionAEnabled}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
+                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
+                                           Value="{Binding ExpressionAMin}" FormatString="000"
+                                           IsEnabled="{Binding ExpressionAEnabled}"/>
+                          </StackPanel>
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
+                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
+                                           Value="{Binding ExpressionAMax}" FormatString="000"
+                                           IsEnabled="{Binding ExpressionAEnabled}"/>
+                          </StackPanel>
+                        </StackPanel>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+
+                  <Border Classes="expDeck" Grid.Column="1" ClipToBounds="False" MinHeight="100" Padding="10,8">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                      <ctrl:ExpValueDial Width="64" Height="64"
+                                         Value="{Binding ExpressionBValue}"
+                                         Minimum="{Binding ExpressionBMin}"
+                                         Maximum="{Binding ExpressionBMax}"
+                                         Accent="#2EC4B6" Caption="LIVE"
+                                         VerticalAlignment="Center"/>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionBEnabled}" VerticalAlignment="Center"/>
+                          <TextBlock Classes="laneLabel" Text="EXP B" Foreground="{DynamicResource StageTeal}"/>
+                          <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
+                                     Text="CC" VerticalAlignment="Center"/>
+                          <NumericUpDown Classes="compact value" Width="48" Minimum="0" Maximum="127"
+                                         Value="{Binding ExpressionBController}" FormatString="000"
+                                         IsEnabled="{Binding ExpressionBEnabled}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
+                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
+                                           Value="{Binding ExpressionBMin}" FormatString="000"
+                                           IsEnabled="{Binding ExpressionBEnabled}"/>
+                          </StackPanel>
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
+                            <NumericUpDown Classes="compact" Width="44" Height="24" Minimum="0" Maximum="127"
+                                           Value="{Binding ExpressionBMax}" FormatString="000"
+                                           IsEnabled="{Binding ExpressionBEnabled}"/>
+                          </StackPanel>
+                        </StackPanel>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="6">
+                    <TextBlock Classes="stageEyebrow" Text="CONTACT" HorizontalAlignment="Center" LetterSpacing="2"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ctrl:RelayLatchControl Width="80" Height="84" Label="SW1" SubLabel="SW"
+                                              IsClosed="{Binding Switch1Closed, Mode=TwoWay}"
+                                              ToolTip.Tip="Relay SWITCH 1"/>
+                      <ctrl:RelayLatchControl Width="80" Height="84" Label="SW2" SubLabel="SW"
+                                              IsClosed="{Binding Switch2Closed, Mode=TwoWay}"
+                                              ToolTip.Tip="Relay SWITCH 2"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Grid>
+
+            <!-- Status rail — single line, no scroll -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#454C52"
+                         Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center"/>
+              <ItemsControl Grid.Column="1" ItemsSource="{Binding PendingChanges}" IsVisible="{Binding HasChanges}"
+                            Margin="12,0,0,0">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="svc:ConfigChange">
+                    <Border Background="#12161B" BorderBrush="#2A1810" BorderThickness="1" CornerRadius="10"
+                            Padding="8,3">
+                      <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9">
+                        <Run Text="{Binding Field}" Foreground="#8B949C"/><Run Text=" → " Foreground="#454C52"/><Run Text="{Binding To}" Foreground="{DynamicResource StageAmber}"/>
+                      </TextBlock>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </Grid>
+        </Border>
+      </DockPanel>
+
+      <!-- Map -->
+      <ScrollViewer IsVisible="{Binding IsMapWorkspace}" Padding="12,8">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="section" Text="PERFORMANCE MAP" Margin="0" Foreground="#E02430"/>
+          <ItemsControl ItemsSource="{Binding MapCells}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="10"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MapCellViewModel">
+                <Button Classes="mapCell"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectMapCellCommand}"
+                        CommandParameter="{Binding Index}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding SwitchNumber}" FontFamily="Cascadia Mono" FontSize="9" Foreground="#E02430"/>
+                    <TextBlock Text="{Binding Name}" FontSize="9" Foreground="#8B949C" TextTrimming="CharacterEllipsis"/>
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Routing -->
+      <ScrollViewer IsVisible="{Binding IsRoutingWorkspace}" Padding="16,10">
+        <StackPanel MaxWidth="560" Spacing="0">
+          <TextBlock Classes="section" Text="GLOBAL MIDI ROUTING" Margin="0,0,0,8" Foreground="#E02430"/>
+          <ItemsControl ItemsSource="{Binding ChannelRoutes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ChannelRouteViewModel">
+                <Grid ColumnDefinitions="64,*,72" Height="26" Margin="0,1">
+                  <TextBlock Classes="param" Text="{Binding Label}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#E6EAED"/>
+                  <Border Grid.Column="1" Height="1" Background="#1A1E22" VerticalAlignment="Center" Margin="8,0"/>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Classes="micro" Text="CH" VerticalAlignment="Center"/>
+                    <NumericUpDown Classes="compact" Width="44" Minimum="1" Maximum="16" Value="{Binding Channel}" FormatString="00"/>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,10,0,0">
+            <CheckBox Classes="compact" Content="Direct select" IsChecked="{Binding DirectSelect}" FontSize="11"/>
+            <CheckBox Classes="compact" Content="Running status" IsChecked="{Binding RunningStatus}" FontSize="11"/>
+            <CheckBox Classes="compact" Content="MIDI merge" IsChecked="{Binding MidiMerge}" FontSize="11"/>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Diagnostics -->
+      <Grid IsVisible="{Binding IsDiagnosticsWorkspace}" ColumnDefinitions="*,380" Margin="10">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="section" Text="DIAGNOSTICS" Margin="0,0,0,6" Foreground="#E02430"/>
+          <DataGrid ItemsSource="{Binding Diagnostics}" IsReadOnly="True" AutoGenerateColumns="True" FontSize="11" RowHeight="22"/>
+        </DockPanel>
+        <DockPanel Grid.Column="1" Margin="10,0,0,0">
+          <TextBlock DockPanel.Dock="Top" Classes="section" Text="HEX" Margin="0,0,0,6"/>
+          <DataGrid ItemsSource="{Binding HexRows}" IsReadOnly="True" AutoGenerateColumns="True" FontSize="11" RowHeight="22"/>
+        </DockPanel>
+      </Grid>
+    </Panel>
+  </DockPanel>
+</Window>
