@@ -34,6 +34,24 @@ public sealed partial class ChannelRouteViewModel : ObservableObject
     public Action<ChannelRouteViewModel>? Commit { get; set; }
     [ObservableProperty] private int _channel;
 
+    public string KindTitle => Kind switch
+    {
+        "pc" => "PROGRAM",
+        "cc" => "CONTROL",
+        "exp" => "EXPRESS",
+        "note" => "NOTE",
+        _ => Kind.ToUpperInvariant(),
+    };
+
+    public string AccentHex => Kind switch
+    {
+        "pc" => "#2EC4B6",
+        "cc" => "#FF9F1C",
+        "exp" => "#6A9EAA",
+        "note" => "#E8D5A3",
+        _ => "#8B949C",
+    };
+
     partial void OnChannelChanged(int value) => Commit?.Invoke(this);
 }
 
@@ -71,6 +89,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly IAppDialogs _dialogs;
     private readonly DryWetMidiTransport _transport = new();
     private readonly FcbDeviceService _device;
+    private readonly EditorMetadataStore _metadata;
     private FcbConfiguration _config = CreateDemo();
     private FcbConfiguration? _deviceSnapshot;
     private FcbConfiguration _savedSnapshot = CreateDemo();
@@ -92,10 +111,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<MidiActionItemViewModel> ControlActionsIdle { get; } = [];
     public ObservableCollection<MidiActionItemViewModel> NoteActions { get; } = [];
     public ObservableCollection<ChannelRouteViewModel> ChannelRoutes { get; } = [];
+    public ObservableCollection<ChannelRouteViewModel> ProgramRoutes { get; } = [];
+    public ObservableCollection<ChannelRouteViewModel> AuxRoutes { get; } = [];
     public ObservableCollection<MidiDiagnostic> Diagnostics { get; } = [];
     public ObservableCollection<ConfigChange> PendingChanges { get; } = [];
     public ObservableCollection<HexRowViewModel> HexRows { get; } = [];
     public ObservableCollection<MapCellViewModel> MapCells { get; } = [];
+    public ObservableCollection<MapBankRowViewModel> MapBanks { get; } = [];
     public ObservableCollection<int> Banks { get; } = new(Enumerable.Range(0, 10));
 
     [ObservableProperty] private MidiPortInfo? _selectedInput;
@@ -116,6 +138,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool CanDeviceIo => Connected;
     public bool CanLink => Connected || (SelectedInput is not null && SelectedOutput is not null);
     [ObservableProperty] private int _bank;
+    [ObservableProperty] private string _bankName = "";
     [ObservableProperty] private int _footswitch = 1;
     [ObservableProperty] private string _presetName = "";
     [ObservableProperty] private string _statusMessage = "Ready.";
@@ -167,6 +190,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _dialogs = dialogs;
         _device = new FcbDeviceService(_transport, Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "FCB1010 Studio", "Backups"));
+        _metadata = new EditorMetadataStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FCB1010 Studio", "Names"));
         _transport.StateChanged += (_, state) => Dispatcher.UIThread.Post(() => ApplyTransportState(state));
         _transport.Diagnostic += (_, item) => Dispatcher.UIThread.Post(() =>
         {
@@ -183,8 +208,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var route = new ChannelRouteViewModel { Label = labels[i], Kind = kinds[i], Index = i, Channel = 1 };
             route.Commit = CommitChannel;
             ChannelRoutes.Add(route);
+            if (i < 5) ProgramRoutes.Add(route);
+            else AuxRoutes.Add(route);
         }
         for (var i = 0; i < 100; i++) MapCells.Add(new MapCellViewModel { Index = i });
+        for (var b = 0; b < 10; b++)
+        {
+            var row = new MapBankRowViewModel { Bank = b };
+            for (var s = 0; s < 5; s++) row.Lower.Add(MapCells[b * 10 + s]);
+            for (var s = 5; s < 10; s++) row.Upper.Add(MapCells[b * 10 + s]);
+            MapBanks.Add(row);
+        }
         RefreshPorts();
         RefreshAll();
     }
@@ -270,6 +304,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         Snapshot();
         _config = FcbSysExCodec.Parse(result.Data, family);
         _config.FirmwareVersion = _firmwareProbe?.Signature;
+        try
+        {
+            if (await _metadata.LoadAsync(result.Data, _config))
+                StatusMessage = result.Message + " Local preset and bank names restored.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = result.Message + " Local names could not be loaded: " + ex.Message;
+        }
         SelectedFirmware = family == FirmwareFamily.Unknown ? SelectedFirmware : family;
         _deviceSnapshot = Clone(_config);
         _savedSnapshot = Clone(_config);
@@ -288,15 +331,57 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             return;
         }
         RefreshChanges();
-        var summary = PendingChanges.Count == 0
+        var labelsOnly = _deviceSnapshot is not null && PendingChanges.Count > 0 &&
+            FcbSysExCodec.Serialize(_config).AsSpan().SequenceEqual(FcbSysExCodec.Serialize(_deviceSnapshot));
+        var summary = labelsOnly
+            ? $"{PendingChanges.Count} editor-only name/note change(s). The FCB1010 cannot store text labels. Save them locally for this exact device dump? No SysEx write will be sent."
+            : PendingChanges.Count == 0
             ? "Editor matches baseline. Write the full dump anyway?"
-            : $"Write {PendingChanges.Count} change(s) to the FCB1010?\n\n" + string.Join("\n", PendingChanges.Take(8).Select(c => $"{c.Scope}: {c.Field} {c.From} → {c.To}"));
-        if (!await _dialogs.ConfirmAsync("WRITE TO FCB1010", summary + "\n\nA timestamped backup is created first. Read-back must match byte-for-byte.")) return;
+            : $"Write MIDI settings to the FCB1010? {PendingChanges.Count} editor change(s):\n\n" + string.Join("\n", PendingChanges.Take(8).Select(c => $"{c.Scope}: {c.Field} {c.From} → {c.To}"));
+        var footer = labelsOnly
+            ? "For portable names, also save a .fcbproject file."
+            : "A timestamped backup is created first. Read-back must match byte-for-byte. Names/notes remain local, not on the pedal.";
+        if (!await _dialogs.ConfirmAsync(labelsOnly ? "SAVE LOCAL NAMES" : "WRITE TO FCB1010", summary + "\n\n" + footer)) return;
+        if (labelsOnly)
+        {
+            try
+            {
+                var current = SelectedFirmware == FirmwareFamily.Stock
+                    ? _device.LastReceived
+                    : (await _device.ReceiveDumpAsync(TimeSpan.FromSeconds(12), SelectedFirmware)).Data;
+                if (current is null || !current.AsSpan().SequenceEqual(FcbSysExCodec.Serialize(_config)))
+                {
+                    await _dialogs.AlertAsync("Names not saved", "The current device dump could not be confirmed to match the editor. Read the pedal again before associating names with it.");
+                    return;
+                }
+                await _metadata.SaveAsync(current, _config);
+                _deviceSnapshot = Clone(_config);
+                StatusMessage = "Names saved locally for the verified pedal dump; no MIDI settings were sent.";
+                await _dialogs.AlertAsync("Local names saved", StatusMessage + " Save a .fcbproject for a portable copy.");
+                RefreshSync();
+            }
+            catch (Exception ex) { await _dialogs.AlertAsync("Names not saved", ex.Message); }
+            return;
+        }
         PulseMidi(rx: false);
         var result = await _device.WriteDumpAsync(_config);
         StatusMessage = result.Message;
-        if (result.Completed) _deviceSnapshot = Clone(_config);
-        await _dialogs.AlertAsync(result.Completed ? "Transmission complete" : "Write failed", result.Message);
+        var report = result.Message;
+        if (result.Completed)
+        {
+            _deviceSnapshot = Clone(_config);
+            try
+            {
+                await _metadata.SaveAsync(result.Data!, _config);
+                report += " Preset and bank names were saved locally; the FCB1010 cannot store text names.";
+            }
+            catch (Exception ex)
+            {
+                report += " MIDI write verified, but local names could not be saved: " + ex.Message;
+            }
+        }
+        StatusMessage = report;
+        await _dialogs.AlertAsync(result.Completed ? "Transmission complete" : "Write failed", report);
         RefreshSync();
     }
 
@@ -479,7 +564,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         Bank = index / 10;
         Footswitch = index % 10 + 1;
-        Workspace = WorkspaceKind.Twin;
+        SelectWorkspace(WorkspaceKind.Twin);
         RefreshAll();
     }
 
@@ -489,6 +574,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         Snapshot();
         _config.PresetNames[SelectedIndex] = value;
         RefreshFootswitches();
+        RefreshSync();
+    }
+
+    partial void OnBankNameChanged(string value)
+    {
+        if (_loading) return;
+        Snapshot();
+        if (string.IsNullOrWhiteSpace(value)) _config.BankNames.Remove(Bank);
+        else _config.BankNames[Bank] = value;
+        RefreshMap();
         RefreshSync();
     }
 
@@ -636,6 +731,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         _loading = true;
         FirmwareLabel = $"{_config.Firmware}{(_config.FirmwareVersion is null ? "" : " " + _config.FirmwareVersion)}";
+        BankName = _config.BankNames.GetValueOrDefault(Bank, "");
         PresetName = _config.PresetNames.GetValueOrDefault(SelectedIndex, $"Preset {Bank:00}{Footswitch % 10}");
         var p = SelectedPreset;
         ExpressionAController = p.ExpressionA.Controller;
@@ -781,10 +877,21 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var p = _config.Presets[i];
             var cell = MapCells[i];
             cell.Name = _config.PresetNames.GetValueOrDefault(i, "");
+            var label = cell.Name;
+            if (label.StartsWith("Preset ", StringComparison.OrdinalIgnoreCase))
+                label = label["Preset ".Length..].Trim();
+            cell.ShortName = string.IsNullOrWhiteSpace(label)
+                ? cell.PedalCode
+                : (label.Length <= 8 ? label : label[..7] + "…");
             cell.Selected = i == SelectedIndex;
-            cell.HasMessages = p.ProgramChanges.Any(x => x.Enabled) || p.ControlChanges.Any(x => x.Enabled);
+            cell.HasMessages = p.ProgramChanges.Any(x => x.Enabled) || p.ControlChanges.Any(x => x.Enabled) || p.Note.Enabled;
             cell.IsStomp = IsStomp(p);
             cell.HasExpression = p.ExpressionA.Enabled || p.ExpressionB.Enabled;
+        }
+        foreach (var row in MapBanks)
+        {
+            row.BankName = _config.BankNames.GetValueOrDefault(row.Bank, "");
+            row.IsActiveBank = row.Bank == Bank;
         }
     }
 
@@ -898,7 +1005,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RefreshChanges();
         var baseline = _deviceSnapshot;
         if (baseline is null) DeviceSync = "NO SNAPSHOT";
-        else DeviceSync = PendingChanges.Count == 0 ? "SYNCED" : "OUT OF SYNC";
+        else DeviceSync = FcbSysExCodec.Serialize(_config).AsSpan().SequenceEqual(FcbSysExCodec.Serialize(baseline))
+            ? "SYNCED" : "OUT OF SYNC";
         EditorSync = PendingChanges.Count == 0 ? "CLEAN" : $"{PendingChanges.Count} CHANGES";
         var projectDirty = JsonSerializer.Serialize(_config) != JsonSerializer.Serialize(_savedSnapshot);
         ProjectSync = projectDirty ? "NOT SAVED" : (_currentPath is null ? "LOCAL" : "SAVED");
@@ -1034,12 +1142,24 @@ internal sealed class NullDialogs : IAppDialogs
     public Task<string?> SaveFileAsync(string title, string? suggestedName, params Avalonia.Platform.Storage.FilePickerFileType[] types) => Task.FromResult<string?>(null);
 }
 
+public sealed partial class MapBankRowViewModel : ObservableObject
+{
+    public required int Bank { get; init; }
+    public string BankLabel => Bank.ToString("00");
+    [ObservableProperty] private string _bankName = "";
+    public ObservableCollection<MapCellViewModel> Lower { get; } = []; // switches 1–5
+    public ObservableCollection<MapCellViewModel> Upper { get; } = []; // switches 6–10
+    [ObservableProperty] private bool _isActiveBank;
+}
+
 public partial class MapCellViewModel : ObservableObject
 {
     public int Index { get; init; }
     public int Bank => Index / 10;
     public int SwitchNumber => Index % 10 + 1;
+    public string PedalCode => $"{Bank}{(SwitchNumber == 10 ? 0 : SwitchNumber)}";
     [ObservableProperty] private string _name = "";
+    [ObservableProperty] private string _shortName = "";
     [ObservableProperty] private bool _selected;
     [ObservableProperty] private bool _hasMessages;
     [ObservableProperty] private bool _isStomp;

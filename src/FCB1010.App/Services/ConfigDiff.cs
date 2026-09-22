@@ -26,6 +26,19 @@ public static class ConfigDiff
                     cfg => revert(cfg, old)));
         }
 
+        for (var bank = 0; bank < 10; bank++)
+        {
+            var current = editor.BankNames.GetValueOrDefault(bank, "");
+            var old = baseline.BankNames.GetValueOrDefault(bank, "");
+            if (current == old) continue;
+            var bankIndex = bank;
+            changes.Add(new($"bank-{bank}-name", $"BANK {bank:00}", "Bank name", old, current, cfg =>
+            {
+                if (string.IsNullOrEmpty(old)) cfg.BankNames.Remove(bankIndex);
+                else cfg.BankNames[bankIndex] = old;
+            }));
+        }
+
         for (var i = 0; i < 10; i++)
         {
             if (editor.Global.MidiChannels[i] == baseline.Global.MidiChannels[i]) continue;

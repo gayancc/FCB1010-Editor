@@ -29,6 +29,9 @@ public sealed class ScrubValueField : Border
     public static readonly StyledProperty<string> FormatStringProperty =
         AvaloniaProperty.Register<ScrubValueField, string>(nameof(FormatString), "000");
 
+    public static readonly StyledProperty<double> DigitsFontSizeProperty =
+        AvaloniaProperty.Register<ScrubValueField, double>(nameof(DigitsFontSize), 13);
+
     public int Value
     {
         get => GetValue(ValueProperty);
@@ -51,6 +54,12 @@ public sealed class ScrubValueField : Border
     {
         get => GetValue(FormatStringProperty);
         set => SetValue(FormatStringProperty, value);
+    }
+
+    public double DigitsFontSize
+    {
+        get => GetValue(DigitsFontSizeProperty);
+        set => SetValue(DigitsFontSizeProperty, value);
     }
 
     private readonly Grid _root;
@@ -83,6 +92,12 @@ public sealed class ScrubValueField : Border
             c.RefreshDisplay();
         });
         FormatStringProperty.Changed.AddClassHandler<ScrubValueField>((c, _) => c.RefreshDisplay());
+        DigitsFontSizeProperty.Changed.AddClassHandler<ScrubValueField>((c, e) =>
+        {
+            var size = e.NewValue is double d ? d : 13;
+            c._display.FontSize = size;
+            c._editor.FontSize = size;
+        });
         MinimumProperty.Changed.AddClassHandler<ScrubValueField>((c, _) => c.OnRangeChanged());
         MaximumProperty.Changed.AddClassHandler<ScrubValueField>((c, _) => c.OnRangeChanged());
         IsEnabledProperty.Changed.AddClassHandler<ScrubValueField>((c, _) => c.UpdateChrome());

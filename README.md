@@ -46,6 +46,10 @@ powershell -ExecutionPolicy Bypass -File build/package.ps1
 3. **READ** from the device (UnO is requested automatically; stock needs Global Config → SYSEX SEND on switch 6).
 4. Edit, then **WRITE**. The app backs up first and verifies with a byte-identical read-back.
 
+### Preset and bank names
+
+The FCB1010 SysEx dump has no text-name fields. Preset and bank names are therefore editor metadata, not settings stored inside the pedal. **WRITE** keeps them in a local record tied to the exact verified dump, so a later **READ** of that same dump restores them on this computer. If only names changed, the app saves that record without sending an unnecessary SysEx write. Save a `.fcbproject` for a portable copy; a plain `.syx` file contains MIDI settings but no names.
+
 ## License
 
 MIT. See [LICENSE](LICENSE) and [ThirdPartyNotices.txt](ThirdPartyNotices.txt).

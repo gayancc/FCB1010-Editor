@@ -1,7 +1,11 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="using:FCB1010.App"
              x:Class="FCB1010.App.App"
              RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <app:HexToBrushConverter x:Key="HexBrush"/>
+  </Application.Resources>
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />

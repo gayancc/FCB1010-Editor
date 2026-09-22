@@ -94,6 +94,21 @@ public partial class App : Application
             && window.DataContext is MainViewModel hitsVm)
             hitsVm.ShowHitRegions = true;
 
+        var workspaceIdx = Array.FindIndex(args, a => a.Equals("--workspace", StringComparison.OrdinalIgnoreCase));
+        if (workspaceIdx >= 0 && workspaceIdx + 1 < args.Length
+            && window.DataContext is MainViewModel workspaceVm)
+        {
+            var name = args[workspaceIdx + 1].Trim().ToLowerInvariant();
+            var kind = name switch
+            {
+                "map" => WorkspaceKind.Map,
+                "routing" or "route" => WorkspaceKind.Routing,
+                "diag" or "diagnostics" => WorkspaceKind.Diagnostics,
+                _ => WorkspaceKind.Twin,
+            };
+            workspaceVm.SelectWorkspaceCommand.Execute(kind);
+        }
+
         var captureIdx = Array.FindIndex(args, a => a.Equals("--capture", StringComparison.OrdinalIgnoreCase));
         if (captureIdx < 0 || captureIdx + 1 >= args.Length) return;
 

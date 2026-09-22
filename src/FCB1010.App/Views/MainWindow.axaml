@@ -13,6 +13,62 @@
         WindowStartupLocation="CenterScreen"
         KeyDown="OnKeyDown">
 
+  <Window.Resources>
+    <DataTemplate x:Key="MapPedalPad" x:DataType="vm:MapCellViewModel">
+      <Button Classes="mapPad"
+              Classes.selected="{Binding Selected}"
+              Classes.live="{Binding HasMessages}"
+              Classes.stomp="{Binding IsStomp}"
+              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectMapCellCommand}"
+              CommandParameter="{Binding Index}"
+              ToolTip.Tip="{Binding Name}">
+        <Grid RowDefinitions="Auto,*" RowSpacing="1">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="24" FontWeight="Bold"
+                       Foreground="{DynamicResource StageSignal}"
+                       Text="{Binding SwitchNumber}" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource StageTeal}" IsVisible="{Binding HasMessages}"/>
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource StageAmber}" IsVisible="{Binding IsStomp}"/>
+              <Ellipse Width="7" Height="7" Fill="#55606A" IsVisible="{Binding HasExpression}"/>
+            </StackPanel>
+          </Grid>
+          <TextBlock Grid.Row="1" FontFamily="{DynamicResource FontDisplay}" FontSize="14" FontWeight="SemiBold"
+                     Foreground="#C2CAD2" Text="{Binding ShortName}" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+      </Button>
+    </DataTemplate>
+
+    <!-- Compact routing tile matching studio reference proportions (~168×72) -->
+    <DataTemplate x:Key="MixStripTemplate" x:DataType="vm:ChannelRouteViewModel">
+      <Border Classes="mixStrip" Width="156" Height="68">
+        <Grid ColumnDefinitions="4,*">
+          <Border Background="{Binding AccentHex, Converter={StaticResource HexBrush}}"
+                  CornerRadius="6,0,0,6"/>
+          <Grid Grid.Column="1" ColumnDefinitions="*,Auto" Margin="11,9,11,9">
+            <StackPanel VerticalAlignment="Center" Spacing="2">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Foreground="#7A848E" Text="{Binding KindTitle}" LetterSpacing="1.1"/>
+              <TextBlock FontFamily="{DynamicResource FontDisplay}" FontSize="18" FontWeight="Bold"
+                         Foreground="#F0F4F7" Text="{Binding Label}"/>
+              <Border Height="2" Width="26" HorizontalAlignment="Left" CornerRadius="1" Margin="0,3,0,0"
+                      Background="{Binding AccentHex, Converter={StaticResource HexBrush}}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="1"
+                        Margin="8,0,0,0">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Foreground="#7A848E" Text="CH" HorizontalAlignment="Center" LetterSpacing="1"/>
+              <ctrl:ScrubValueField Width="38" Height="26" Minimum="1" Maximum="16"
+                                    DigitsFontSize="17"
+                                    Value="{Binding Channel, Mode=TwoWay}" FormatString="00"
+                                    HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </Window.Resources>
+
   <DockPanel>
 
     <!-- ═══ COMMAND DECK — link-aware operations bay ═══ -->
@@ -170,12 +226,15 @@
                                Foreground="{DynamicResource StageAmber}"
                                Text="{Binding Footswitch, StringFormat={}{0:00}}"/>
                   </StackPanel>
-                  <TextBlock Classes="stageEyebrow" Text="BANK · PRESET" Margin="0,0,0,8" Opacity="0.65"/>
+                  <TextBlock Classes="stageEyebrow" Text="BANK · PRESET" Margin="0,0,0,4" Opacity="0.65"/>
+                  <TextBox Classes="stageName" Text="{Binding BankName}" PlaceholderText="Bank name…"
+                           ToolTip.Tip="Editor-only bank name; stored in project/local metadata, not on the pedal" FontSize="11" Margin="0,0,0,6"/>
                   <Border Background="#12161B" CornerRadius="4" Padding="6,3" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="SemiBold"
                                Foreground="{DynamicResource StageTeal}" Text="{Binding RoleLabel}" LetterSpacing="1"/>
                   </Border>
-                  <TextBox Classes="stageName" Text="{Binding PresetName}" PlaceholderText="Name…" FontSize="13"/>
+                  <TextBox Classes="stageName" Text="{Binding PresetName}" PlaceholderText="Preset name…"
+                           ToolTip.Tip="Editor-only preset name; stored in project/local metadata, not on the pedal" FontSize="13"/>
                   <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" Foreground="#5C656E"
                              Text="{Binding FlowText}" TextWrapping="Wrap" Margin="0,8,0,0" MaxLines="3"/>
                 </StackPanel>
@@ -413,70 +472,336 @@
         </Border>
       </DockPanel>
 
-      <!-- Map -->
-      <ScrollViewer IsVisible="{Binding IsMapWorkspace}" Padding="12,8">
-        <StackPanel Spacing="6">
-          <TextBlock Classes="section" Text="PERFORMANCE MAP" Margin="0" Foreground="#E02430"/>
-          <ItemsControl ItemsSource="{Binding MapCells}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Columns="10"/>
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:MapCellViewModel">
-                <Button Classes="mapCell"
-                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectMapCellCommand}"
-                        CommandParameter="{Binding Index}">
-                  <StackPanel>
-                    <TextBlock Text="{Binding SwitchNumber}" FontFamily="Cascadia Mono" FontSize="9" Foreground="#E02430"/>
-                    <TextBlock Text="{Binding Name}" FontSize="9" Foreground="#8B949C" TextTrimming="CharacterEllipsis"/>
-                  </StackPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </ScrollViewer>
-
-      <!-- Routing -->
-      <ScrollViewer IsVisible="{Binding IsRoutingWorkspace}" Padding="16,10">
-        <StackPanel MaxWidth="560" Spacing="0">
-          <TextBlock Classes="section" Text="GLOBAL MIDI ROUTING" Margin="0,0,0,8" Foreground="#E02430"/>
-          <ItemsControl ItemsSource="{Binding ChannelRoutes}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ChannelRouteViewModel">
-                <Grid ColumnDefinitions="64,*,72" Height="26" Margin="0,1">
-                  <TextBlock Classes="param" Text="{Binding Label}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#E6EAED"/>
-                  <Border Grid.Column="1" Height="1" Background="#1A1E22" VerticalAlignment="Center" Margin="8,0"/>
-                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <TextBlock Classes="micro" Text="CH" VerticalAlignment="Center"/>
-                    <ctrl:ScrubValueField Classes="compact" Width="32" Minimum="1" Maximum="16"
-                                          Value="{Binding Channel, Mode=TwoWay}" FormatString="00"/>
-                  </StackPanel>
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,10,0,0">
-            <CheckBox Classes="compact" Content="Direct select" IsChecked="{Binding DirectSelect}" FontSize="11"/>
-            <CheckBox Classes="compact" Content="Running status" IsChecked="{Binding RunningStatus}" FontSize="11"/>
-            <CheckBox Classes="compact" Content="MIDI merge" IsChecked="{Binding MidiMerge}" FontSize="11"/>
-          </StackPanel>
-        </StackPanel>
-      </ScrollViewer>
-
-      <!-- Diagnostics -->
-      <Grid IsVisible="{Binding IsDiagnosticsWorkspace}" ColumnDefinitions="*,380" Margin="10">
+      <!-- ═══ MAP — bank rails mirroring the real pedalboard (1–5 | 6–10) ═══ -->
+      <Border IsVisible="{Binding IsMapWorkspace}" Classes="workspaceFace" ClipToBounds="False">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#050607" Offset="0"/>
+            <GradientStop Color="#090B0E" Offset="0.5"/>
+            <GradientStop Color="#06080A" Offset="1"/>
+          </LinearGradientBrush>
+        </Border.Background>
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="section" Text="DIAGNOSTICS" Margin="0,0,0,6" Foreground="#E02430"/>
-          <DataGrid ItemsSource="{Binding Diagnostics}" IsReadOnly="True" AutoGenerateColumns="True" FontSize="11" RowHeight="22"/>
+          <!-- Focus bar: selection + legend inline — no wasted sidebar -->
+          <Border DockPanel.Dock="Top" Background="#080A0C" BorderBrush="#161B21" BorderThickness="1"
+                  CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Classes="stageEyebrow" Text="MAP" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="22" FontWeight="Bold"
+                           Foreground="{DynamicResource StageSignal}"
+                           Text="{Binding Bank, StringFormat={}{0:00}}" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="16" Foreground="#2A3038"
+                           Text="·" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="22" FontWeight="Bold"
+                           Foreground="{DynamicResource StageAmber}"
+                           Text="{Binding Footswitch, StringFormat={}{0:00}}" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontDisplay}" FontSize="14" FontWeight="SemiBold"
+                           Foreground="#E8EEF2" Text="{Binding PresetName}" VerticalAlignment="Center"
+                           Margin="8,0,0,0"/>
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Border Background="#12161B" CornerRadius="4" Padding="8,3">
+                  <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="SemiBold"
+                             Foreground="{DynamicResource StageTeal}" Text="{Binding RoleLabel}"/>
+                </Border>
+                <Border Background="#12161B" CornerRadius="4" Padding="8,3" IsVisible="{Binding ActionSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#8B949C"
+                             Text="{Binding ActionSummary}"/>
+                </Border>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource StageSignal}"/><TextBlock Classes="stageEyebrow" Text="SEL"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource StageTeal}"/><TextBlock Classes="stageEyebrow" Text="MIDI"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource StageAmber}"/><TextBlock Classes="stageEyebrow" Text="STOMP"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Ellipse Width="6" Height="6" Fill="#55606A"/><TextBlock Classes="stageEyebrow" Text="EXP"/>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Column legend: lower pedals | upper pedals -->
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="44,*,12,*" Margin="0,0,0,4">
+            <TextBlock Classes="stageEyebrow" Text="BANK" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <Grid Grid.Column="1" ColumnDefinitions="*,*,*,*,*">
+              <TextBlock Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="1" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="2" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="2" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="3" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="3" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="4" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="4" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="5" HorizontalAlignment="Center"/>
+            </Grid>
+            <Border Grid.Column="2" Width="1" Background="#1A2028" HorizontalAlignment="Center" Margin="0,2"/>
+            <Grid Grid.Column="3" ColumnDefinitions="*,*,*,*,*">
+              <TextBlock Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="6" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="7" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="2" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="8" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="3" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="9" HorizontalAlignment="Center"/>
+              <TextBlock Grid.Column="4" Classes="stageEyebrow" FontSize="12" FontWeight="Bold" Text="10" HorizontalAlignment="Center"/>
+            </Grid>
+          </Grid>
+
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding MapBanks}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="0"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MapBankRowViewModel">
+                  <Border Classes="bankRail" Classes.activeBank="{Binding IsActiveBank}">
+                    <Grid ColumnDefinitions="118,*,10,*" ColumnSpacing="0" Height="62">
+                      <Border Background="#0C0F13" CornerRadius="6" Margin="0,0,8,0">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="104">
+                          <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="20" FontWeight="Bold"
+                                     Foreground="{DynamicResource StageAmber}" Text="{Binding BankLabel}"
+                                     HorizontalAlignment="Center"/>
+                          <TextBlock Classes="stageEyebrow" Text="{Binding BankName}" FontSize="9"
+                                     TextTrimming="CharacterEllipsis" HorizontalAlignment="Center"
+                                     ToolTip.Tip="{Binding BankName}"/>
+                        </StackPanel>
+                      </Border>
+                      <ItemsControl Grid.Column="1" ItemsSource="{Binding Lower}"
+                                    ItemTemplate="{StaticResource MapPedalPad}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <UniformGrid Columns="5"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                      </ItemsControl>
+                      <Border Grid.Column="2" Width="2" Background="#151A20" CornerRadius="1"
+                              HorizontalAlignment="Center" Margin="3,8"/>
+                      <ItemsControl Grid.Column="3" ItemsSource="{Binding Upper}"
+                                    ItemTemplate="{StaticResource MapPedalPad}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <UniformGrid Columns="5"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                      </ItemsControl>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
         </DockPanel>
-        <DockPanel Grid.Column="1" Margin="10,0,0,0">
-          <TextBlock DockPanel.Dock="Top" Classes="section" Text="HEX" Margin="0,0,0,6"/>
-          <DataGrid ItemsSource="{Binding HexRows}" IsReadOnly="True" AutoGenerateColumns="True" FontSize="11" RowHeight="22"/>
+      </Border>
+
+      <!-- ═══ ROUTING — grouped mixer lanes that fill the bay ═══ -->
+      <Border IsVisible="{Binding IsRoutingWorkspace}" Classes="workspaceFace" ClipToBounds="False">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#050607" Offset="0"/>
+            <GradientStop Color="#090B0E" Offset="0.5"/>
+            <GradientStop Color="#06080A" Offset="1"/>
+          </LinearGradientBrush>
+        </Border.Background>
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Background="#080A0C" BorderBrush="#161B21" BorderThickness="1"
+                  CornerRadius="8" Padding="12,8" Margin="0,0,0,14">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="11" FontWeight="Bold"
+                           Foreground="#8B949C" Text="MIDI ROUTING" LetterSpacing="1.5" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="14" FontWeight="Bold"
+                           Foreground="{DynamicResource StageTeal}" Text="GLOBAL CHANNEL MATRIX" VerticalAlignment="Center"/>
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <ToggleButton Classes="flagKey" IsChecked="{Binding DirectSelect}"
+                              ToolTip.Tip="Direct Select — jump to presets without bank confirmation">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Classes="code" FontFamily="{DynamicResource FontMono}" FontSize="12"
+                                 FontWeight="Bold" Text="DIR" LetterSpacing="1.6"/>
+                      <TextBlock Classes="caption" FontFamily="{DynamicResource FontDisplay}" FontSize="12"
+                                 Text="Direct select"/>
+                    </StackPanel>
+                  </Grid>
+                </ToggleButton>
+                <ToggleButton Classes="flagKey" IsChecked="{Binding RunningStatus}"
+                              ToolTip.Tip="Running Status — omit redundant MIDI status bytes">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Classes="code" FontFamily="{DynamicResource FontMono}" FontSize="12"
+                                 FontWeight="Bold" Text="RUN" LetterSpacing="1.6"/>
+                      <TextBlock Classes="caption" FontFamily="{DynamicResource FontDisplay}" FontSize="12"
+                                 Text="Running status"/>
+                    </StackPanel>
+                  </Grid>
+                </ToggleButton>
+                <ToggleButton Classes="flagKey" IsChecked="{Binding MidiMerge}"
+                              ToolTip.Tip="MIDI Merge — pass through MIDI from the input port">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Classes="code" FontFamily="{DynamicResource FontMono}" FontSize="12"
+                                 FontWeight="Bold" Text="MRG" LetterSpacing="1.6"/>
+                      <TextBlock Classes="caption" FontFamily="{DynamicResource FontDisplay}" FontSize="12"
+                                 Text="MIDI merge"/>
+                    </StackPanel>
+                  </Grid>
+                </ToggleButton>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <StackPanel Spacing="16">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Width="8" Height="8" CornerRadius="2" Background="{DynamicResource StageTeal}" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontDisplay}" FontSize="11" FontWeight="Bold"
+                           Foreground="{DynamicResource StageTeal}" Text="PROGRAM CHANGES" LetterSpacing="1.2"/>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding ProgramRoutes}" ItemTemplate="{StaticResource MixStripTemplate}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="0"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Width="8" Height="8" CornerRadius="2" Background="{DynamicResource StageAmber}" VerticalAlignment="Center"/>
+                <TextBlock FontFamily="{DynamicResource FontDisplay}" FontSize="11" FontWeight="Bold"
+                           Foreground="{DynamicResource StageAmber}" Text="CONTROL · EXPRESSION · NOTE" LetterSpacing="1.2"/>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding AuxRoutes}" ItemTemplate="{StaticResource MixStripTemplate}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="0"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </StackPanel>
+          </StackPanel>
         </DockPanel>
-      </Grid>
+      </Border>
+
+      <!-- ═══ DIAGNOSTICS — traffic console + hex bay ═══ -->
+      <Border IsVisible="{Binding IsDiagnosticsWorkspace}" Classes="workspaceFace" ClipToBounds="False">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#050607" Offset="0"/>
+            <GradientStop Color="#0A0C0F" Offset="0.55"/>
+            <GradientStop Color="#07090B" Offset="1"/>
+          </LinearGradientBrush>
+        </Border.Background>
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <TextBlock Classes="stageEyebrow" Text="DIAGNOSTICS BAY" VerticalAlignment="Center"/>
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="11" Foreground="#5C656E"
+                         Text="{Binding RawHex}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                         MaxWidth="720"/>
+            </StackPanel>
+            <Border Grid.Column="1" Background="#101418" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Foreground="{DynamicResource StageAmber}" Text="{Binding DeviceSync}"/>
+            </Border>
+            <Border Grid.Column="2" Background="#101418" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Foreground="{DynamicResource StageTeal}" Text="{Binding EditorSync}"/>
+            </Border>
+            <Border Grid.Column="3" Background="#101418" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+              <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                         Foreground="#8B949C" Text="{Binding ProjectSync}"/>
+            </Border>
+          </Grid>
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,1.05*" ColumnSpacing="12">
+            <!-- MIDI traffic -->
+            <Border Classes="stagePlate" Padding="0" ClipToBounds="True">
+              <DockPanel>
+                <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="#1A1F26" BorderThickness="0,0,0,1">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="stageEyebrow" Text="MIDI TRAFFIC" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" FontFamily="{DynamicResource FontMono}" FontSize="9"
+                               Foreground="#5C656E" Text="LIVE · NEWEST FIRST"/>
+                  </Grid>
+                </Border>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding Diagnostics}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="midi:MidiDiagnostic">
+                        <Border Classes="consoleRow">
+                          <Grid ColumnDefinitions="64,36,88,48,*" ColumnSpacing="8">
+                            <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
+                                       Text="{Binding Timestamp, StringFormat={}{0:HH:mm:ss.fff}}"/>
+                            <TextBlock Grid.Column="1" FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
+                                       Foreground="{DynamicResource StageTeal}" Text="{Binding Direction}"/>
+                            <TextBlock Grid.Column="2" FontFamily="{DynamicResource FontMono}" FontSize="10"
+                                       Foreground="#C8D0D6" Text="{Binding MessageType}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="3" FontFamily="{DynamicResource FontMono}" FontSize="10"
+                                       Foreground="#6A737C" Text="{Binding Size, StringFormat={}{0} B}"/>
+                            <TextBlock Grid.Column="4" FontFamily="{DynamicResource FontMono}" FontSize="10"
+                                       Foreground="#8B949C" Text="{Binding Status}" TextTrimming="CharacterEllipsis"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+            </Border>
+
+            <!-- Hex inspector -->
+            <Border Grid.Column="1" Classes="stagePlate" Padding="0" ClipToBounds="True">
+              <DockPanel>
+                <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="#1A1F26" BorderThickness="0,0,0,1">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="stageEyebrow" Text="DECODED MEMORY" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" FontFamily="{DynamicResource FontMono}" FontSize="9"
+                               Foreground="#5C656E" Text="PRESET · GLOBALS · DIFF"/>
+                  </Grid>
+                </Border>
+                <Border DockPanel.Dock="Top" Padding="12,6" Background="#0A0D10">
+                  <Grid ColumnDefinitions="52,36,*,120" ColumnSpacing="8">
+                    <TextBlock Classes="stageEyebrow" Text="OFF"/>
+                    <TextBlock Grid.Column="1" Classes="stageEyebrow" Text="HEX"/>
+                    <TextBlock Grid.Column="2" Classes="stageEyebrow" Text="MEANING"/>
+                    <TextBlock Grid.Column="3" Classes="stageEyebrow" Text="Δ"/>
+                  </Grid>
+                </Border>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding HexRows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:HexRowViewModel">
+                        <Border Classes="consoleRow" Classes.changed="{Binding IsChanged}">
+                          <Grid ColumnDefinitions="52,36,*,120" ColumnSpacing="8">
+                            <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource StageAmber}" Text="{Binding Offset}"/>
+                            <TextBlock Grid.Column="1" FontFamily="{DynamicResource FontMono}" FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource StageTeal}" Text="{Binding Hex}"/>
+                            <TextBlock Grid.Column="2" FontFamily="{DynamicResource FontMono}" FontSize="10"
+                                       Foreground="#C8D0D6" Text="{Binding Meaning}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="3" FontFamily="{DynamicResource FontMono}" FontSize="10"
+                                       Foreground="#8B949C" Text="{Binding Changed}" TextTrimming="CharacterEllipsis"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+            </Border>
+          </Grid>
+
+          <TextBlock Grid.Row="2" FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#454C52"
+                     Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+      </Border>
     </Panel>
   </DockPanel>
 </Window>

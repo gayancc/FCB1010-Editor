@@ -168,4 +168,50 @@ public sealed class ProtocolTests
         Assert.Contains(events, e => e is Melanchall.DryWetMidi.Core.ControlChangeEvent);
         Assert.Contains(events, e => e is Melanchall.DryWetMidi.Core.NoteOnEvent);
     }
+
+    [Fact]
+    public async Task Project_round_trip_keeps_editor_only_bank_and_preset_names()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "fcb1010-project-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var config = FcbSysExCodec.Parse(UnoFixture(), FirmwareFamily.UnO);
+            config.BankNames[3] = "Ambient set";
+            config.PresetNames[31] = "Wide delay";
+            var path = Path.Combine(dir, "set.fcbproject");
+            await ProjectPersistence.SaveProjectAsync(path, config);
+            var loaded = await ProjectPersistence.LoadProjectAsync(path);
+            Assert.Equal("Ambient set", loaded.BankNames[3]);
+            Assert.Equal("Wide delay", loaded.PresetNames[31]);
+            Assert.Equal(UnoFixture(), FcbSysExCodec.Serialize(loaded));
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Local_names_follow_exact_verified_dump_not_an_unrelated_dump()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "fcb1010-names-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var dump = UnoFixture();
+            var config = FcbSysExCodec.Parse(dump, FirmwareFamily.UnO);
+            config.BankNames[0] = "Opening";
+            config.PresetNames[0] = "Clean";
+            config.PresetNotes[0] = "Intro";
+            var store = new EditorMetadataStore(dir);
+            await store.SaveAsync(dump, config);
+            var reread = FcbSysExCodec.Parse(dump, FirmwareFamily.UnO);
+            Assert.True(await store.LoadAsync(dump, reread));
+            Assert.Equal("Opening", reread.BankNames[0]);
+            Assert.Equal("Clean", reread.PresetNames[0]);
+            Assert.Equal("Intro", reread.PresetNotes[0]);
+            var changed = config.DeepClone();
+            changed.Presets[0].ProgramChanges[0].Program++;
+            var changedDump = FcbSysExCodec.Serialize(changed);
+            Assert.False(await store.LoadAsync(changedDump, FcbSysExCodec.Parse(changedDump)));
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+    }
 }

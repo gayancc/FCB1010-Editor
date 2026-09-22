@@ -13,6 +13,8 @@ public sealed class FcbConfiguration
     public GlobalConfiguration Global { get; set; } = new();
     public Dictionary<int, string> PresetNames { get; set; } = [];
     public Dictionary<int, string> PresetNotes { get; set; } = [];
+    /// <summary>Editor-only labels; the FCB1010 SysEx format has no bank-name field.</summary>
+    public Dictionary<int, string> BankNames { get; set; } = [];
     [JsonIgnore] public byte[]? SourceSysEx { get; set; }
     public string? SourceDescription { get; set; }
 
