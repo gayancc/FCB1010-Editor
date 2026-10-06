@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -55,6 +57,28 @@ public sealed class FcbExpressionPedalControl : Control
         MinWidth = 56;
         MinHeight = 140;
         ClipToBounds = true;
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new ExpressionPedalAutomationPeer(this);
+
+    private sealed class ExpressionPedalAutomationPeer(FcbExpressionPedalControl owner)
+        : ControlAutomationPeer(owner), IRangeValueProvider
+    {
+        private FcbExpressionPedalControl Pedal => (FcbExpressionPedalControl)Owner;
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Slider;
+        protected override string GetClassNameCore() => nameof(FcbExpressionPedalControl);
+        public bool IsReadOnly => !Pedal.IsEnabled || !Pedal.IsEnabledPedal;
+        public double Minimum => Pedal.Minimum;
+        public double Maximum => Pedal.Maximum;
+        public double Value => Pedal.Value;
+        public double LargeChange => 10;
+        public double SmallChange => 1;
+        public void SetValue(double value)
+        {
+            if (IsReadOnly) return;
+            Pedal.Value = Math.Clamp((int)Math.Round(value), Pedal.Minimum, Pedal.Maximum);
+            Pedal.ValueCommitted?.Invoke(Pedal, Pedal.Value);
+        }
     }
 
     private static Bitmap? TryLoad()

@@ -85,22 +85,83 @@ public static class ConfigurationValidator
     public static IReadOnlyList<ValidationIssue> Validate(FcbConfiguration config)
     {
         var issues = new List<ValidationIssue>();
-        if (config.Presets.Count != 100) issues.Add(new("Presets", $"Expected 100 presets; found {config.Presets.Count}."));
-        foreach (var p in config.Presets)
+        if (!Enum.IsDefined(config.Firmware)) issues.Add(new("Firmware", $"Unknown firmware value {(int)config.Firmware}."));
+        if (config.Global is null)
         {
+            issues.Add(new("Global", "Global configuration is missing."));
+            return issues;
+        }
+        if (config.Presets is null)
+        {
+            issues.Add(new("Presets", "Preset collection is missing."));
+            return issues;
+        }
+        if (config.Presets.Count != 100) issues.Add(new("Presets", $"Expected 100 presets; found {config.Presets.Count}."));
+        var seenIndexes = new HashSet<int>();
+        for (var position = 0; position < config.Presets.Count; position++)
+        {
+            var p = config.Presets[position];
+            if (p is null)
+            {
+                issues.Add(new($"Presets[{position}]", "Preset is missing."));
+                continue;
+            }
+            if (p.Index is < 0 or > 99)
+                issues.Add(new($"Presets[{position}].Index", $"Preset index {p.Index} is outside 0-99."));
+            else if (!seenIndexes.Add(p.Index))
+                issues.Add(new($"Presets[{position}].Index", $"Preset index {p.Index} is duplicated."));
+            if (p.ProgramChanges is null)
+            {
+                issues.Add(new($"Preset[{p.Index}].ProgramChanges", "Program Change collection is missing."));
+                continue;
+            }
+            if (p.ControlChanges is null)
+            {
+                issues.Add(new($"Preset[{p.Index}].ControlChanges", "Control Change collection is missing."));
+                continue;
+            }
+            if (p.Note is null || p.ExpressionA is null || p.ExpressionB is null)
+            {
+                issues.Add(new($"Preset[{p.Index}]", "Note and expression settings are required."));
+                continue;
+            }
             if (p.ProgramChanges.Count != 5) issues.Add(new($"Preset[{p.Index}].ProgramChanges", "Exactly five Program Change slots are required."));
             if (p.ControlChanges.Count != 2) issues.Add(new($"Preset[{p.Index}].ControlChanges", "Exactly two Control Change slots are required."));
-            foreach (var (pc, i) in p.ProgramChanges.Select((v, i) => (v, i))) Range(pc.Program, $"Preset[{p.Index}].PC{i + 1}", issues);
-            foreach (var (cc, i) in p.ControlChanges.Select((v, i) => (v, i))) { Range(cc.Controller, $"Preset[{p.Index}].CC{i + 1}.Controller", issues); Range(cc.Value, $"Preset[{p.Index}].CC{i + 1}.Value", issues); if (cc.AlternateValue is int a) Range(a, $"Preset[{p.Index}].CC{i + 1}.AlternateValue", issues); }
+            foreach (var (pc, i) in p.ProgramChanges.Select((v, i) => (v, i)))
+                if (pc is null) issues.Add(new($"Preset[{p.Index}].PC{i + 1}", "Program Change slot is missing."));
+                else Range(pc.Program, $"Preset[{p.Index}].PC{i + 1}", issues);
+            foreach (var (cc, i) in p.ControlChanges.Select((v, i) => (v, i)))
+                if (cc is null) issues.Add(new($"Preset[{p.Index}].CC{i + 1}", "Control Change slot is missing."));
+                else { Range(cc.Controller, $"Preset[{p.Index}].CC{i + 1}.Controller", issues); Range(cc.Value, $"Preset[{p.Index}].CC{i + 1}.Value", issues); if (cc.AlternateValue is int a) Range(a, $"Preset[{p.Index}].CC{i + 1}.AlternateValue", issues); }
             Range(p.Note.Note, $"Preset[{p.Index}].Note", issues);
             ValidateExpression(p.ExpressionA, $"Preset[{p.Index}].ExpressionA", issues);
             ValidateExpression(p.ExpressionB, $"Preset[{p.Index}].ExpressionB", issues);
         }
-        if (config.Global.MidiChannels.Length != 10) issues.Add(new("Global.MidiChannels", "Exactly ten global MIDI channels are required."));
+        if (seenIndexes.Count == 100 && !seenIndexes.SetEquals(Enumerable.Range(0, 100)))
+            issues.Add(new("Presets", "Preset indexes must contain each value from 0 through 99 exactly once."));
+        if (config.Global.MidiChannels is null) issues.Add(new("Global.MidiChannels", "MIDI channel collection is missing."));
+        else if (config.Global.MidiChannels.Length != 10) issues.Add(new("Global.MidiChannels", "Exactly ten global MIDI channels are required."));
         else foreach (var (channel, i) in config.Global.MidiChannels.Select((v, i) => (v, i))) if (channel is < 1 or > 16) issues.Add(new($"Global.MidiChannels[{i}]", "MIDI channel must be 1-16."));
+        CalibrationRange(config.Global.ExpressionACalibrationMin, config.Global.ExpressionACalibrationMax, "Global.ExpressionACalibration", issues);
+        CalibrationRange(config.Global.ExpressionBCalibrationMin, config.Global.ExpressionBCalibrationMax, "Global.ExpressionBCalibration", issues);
+        if (config.PresetNames is null || config.PresetNotes is null || config.BankNames is null)
+        {
+            issues.Add(new("Metadata", "Preset names, preset notes, and bank names collections are required."));
+            return issues;
+        }
+        foreach (var key in config.PresetNames.Keys.Concat(config.PresetNotes.Keys))
+            if (key is < 0 or > 99) issues.Add(new("Preset metadata", $"Preset metadata key {key} is outside 0-99."));
+        foreach (var key in config.BankNames.Keys)
+            if (key is < 0 or > 9) issues.Add(new("BankNames", $"Bank name key {key} is outside 0-9."));
         return issues;
     }
 
     private static void Range(int value, string path, List<ValidationIssue> issues) { if (value is < 0 or > 127) issues.Add(new(path, $"Value {value} is outside MIDI range 0-127.")); }
     private static void ValidateExpression(ExpressionAction e, string path, List<ValidationIssue> issues) { Range(e.Controller, path + ".Controller", issues); Range(e.Minimum, path + ".Minimum", issues); Range(e.Maximum, path + ".Maximum", issues); if (e.Minimum > e.Maximum) issues.Add(new(path, "Minimum cannot exceed maximum.")); }
+    private static void CalibrationRange(int minimum, int maximum, string path, List<ValidationIssue> issues)
+    {
+        if (minimum is < -8 or > 247) issues.Add(new(path + ".Minimum", "Calibration minimum must be between -8 and 247."));
+        if (maximum is < 5 or > 260) issues.Add(new(path + ".Maximum", "Calibration maximum must be between 5 and 260."));
+        if (minimum > maximum) issues.Add(new(path, "Calibration minimum cannot exceed maximum."));
+    }
 }

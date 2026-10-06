@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
@@ -355,9 +356,19 @@ public sealed class Fcb1010Surface : UserControl
             var n = i + 1;
             _pedals[i].Command = vm.SelectFootswitchCommand;
             _pedals[i].CommandParameter = n;
+            _pedals[i].SetValue(AutomationProperties.AutomationIdProperty, $"Footswitch{n}");
+            _pedals[i].SetValue(AutomationProperties.NameProperty, $"Footswitch {n}");
         }
         _up.Command = vm.BankUpCommand;
         _down.Command = vm.BankDownCommand;
+        _up.SetValue(AutomationProperties.AutomationIdProperty, "BankUp");
+        _up.SetValue(AutomationProperties.NameProperty, "Bank up");
+        _down.SetValue(AutomationProperties.AutomationIdProperty, "BankDown");
+        _down.SetValue(AutomationProperties.NameProperty, "Bank down");
+        _expA.SetValue(AutomationProperties.AutomationIdProperty, "ExpressionPedalA");
+        _expA.SetValue(AutomationProperties.NameProperty, "Expression pedal A");
+        _expB.SetValue(AutomationProperties.AutomationIdProperty, "ExpressionPedalB");
+        _expB.SetValue(AutomationProperties.NameProperty, "Expression pedal B");
         _display.ToggleRelayCommand = vm.ToggleRelayCommand;
     }
 

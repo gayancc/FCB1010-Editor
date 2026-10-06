@@ -11,11 +11,14 @@
         Width="1600" Height="780"
         MinWidth="1200" MinHeight="640"
         WindowStartupLocation="CenterScreen"
+        Closing="OnClosing"
         KeyDown="OnKeyDown">
 
   <Window.Resources>
     <DataTemplate x:Key="MapPedalPad" x:DataType="vm:MapCellViewModel">
       <Button Classes="mapPad"
+              AutomationProperties.AutomationId="{Binding Index, StringFormat=PresetMap{0}}"
+              AutomationProperties.Name="{Binding PedalCode, StringFormat=Open preset {0}}"
               Classes.selected="{Binding Selected}"
               Classes.live="{Binding HasMessages}"
               Classes.stomp="{Binding IsStomp}"
@@ -59,6 +62,8 @@
               <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" FontWeight="Bold"
                          Foreground="#7A848E" Text="CH" HorizontalAlignment="Center" LetterSpacing="1"/>
               <ctrl:ScrubValueField Width="38" Height="26" Minimum="1" Maximum="16"
+                                    AutomationProperties.AutomationId="{Binding Index, StringFormat=RouteChannel{0}}"
+                                    AutomationProperties.Name="{Binding Label, StringFormat={}{0} MIDI channel}"
                                     DigitsFontSize="17"
                                     Value="{Binding Channel, Mode=TwoWay}" FormatString="00"
                                     HorizontalAlignment="Center"/>
@@ -105,12 +110,16 @@
                 Background="#101418" CornerRadius="6" Padding="3">
           <StackPanel Orientation="Horizontal" Spacing="0">
             <Button Classes="seg" Content="DEVICE" Classes.active="{Binding IsTwinWorkspace}"
+                    AutomationProperties.AutomationId="NavDevice" AutomationProperties.Name="Device workspace"
                     Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Twin}"/>
             <Button Classes="seg" Content="MAP" Classes.active="{Binding IsMapWorkspace}"
+                    AutomationProperties.AutomationId="NavMap" AutomationProperties.Name="Preset map workspace"
                     Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Map}"/>
             <Button Classes="seg" Content="ROUTING" Classes.active="{Binding IsRoutingWorkspace}"
+                    AutomationProperties.AutomationId="NavRouting" AutomationProperties.Name="MIDI routing workspace"
                     Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Routing}"/>
             <Button Classes="seg" Content="DIAG" Classes.active="{Binding IsDiagnosticsWorkspace}"
+                    AutomationProperties.AutomationId="NavDiagnostics" AutomationProperties.Name="Diagnostics workspace"
                     Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:WorkspaceKind.Diagnostics}"/>
           </StackPanel>
         </Border>
@@ -124,6 +133,7 @@
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Classes="bayLabel" Text="IN" VerticalAlignment="Center"/>
                 <ComboBox Classes="compact port" Width="140" IsEnabled="{Binding CanChangePorts}"
+                          AutomationProperties.AutomationId="MidiInputPort" AutomationProperties.Name="MIDI input port"
                           ItemsSource="{Binding InputPorts}" SelectedItem="{Binding SelectedInput}"
                           ToolTip.Tip="{Binding SelectedInput.Name}">
                   <ComboBox.ItemTemplate>
@@ -136,6 +146,7 @@
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Classes="bayLabel" Text="OUT" VerticalAlignment="Center"/>
                 <ComboBox Classes="compact port" Width="140" IsEnabled="{Binding CanChangePorts}"
+                          AutomationProperties.AutomationId="MidiOutputPort" AutomationProperties.Name="MIDI output port"
                           ItemsSource="{Binding OutputPorts}" SelectedItem="{Binding SelectedOutput}"
                           ToolTip.Tip="{Binding SelectedOutput.Name}">
                   <ComboBox.ItemTemplate>
@@ -146,6 +157,7 @@
                 </ComboBox>
               </StackPanel>
               <ComboBox Classes="compact port" Width="88" IsEnabled="{Binding CanChangePorts}"
+                        AutomationProperties.AutomationId="FirmwareFamily" AutomationProperties.Name="Firmware family"
                         ItemsSource="{Binding FirmwareChoices}" SelectedItem="{Binding SelectedFirmware}"
                         ToolTip.Tip="Firmware family for SysEx"/>
             </StackPanel>
@@ -153,6 +165,7 @@
 
           <!-- Link control — LINK / UNLINK -->
           <Button Classes="linkBtn" Classes.online="{Binding Connected}"
+                  AutomationProperties.AutomationId="LinkMidi"
                   Content="{Binding LinkButtonLabel}"
                   Command="{Binding ToggleLinkCommand}"
                   ToolTip.Tip="Establish or close the MIDI link"/>
@@ -162,10 +175,13 @@
           <!-- Device I/O — gated by MIDI link (commands also CanExecute=false when offline) -->
           <StackPanel Orientation="Horizontal" Spacing="4">
             <Button Classes="deck" Content="READ" Command="{Binding ReadDeviceCommand}"
+                    AutomationProperties.AutomationId="ReadDevice" AutomationProperties.Name="Read configuration from device"
                     ToolTip.Tip="Pull configuration dump from the FCB1010"/>
             <Button Classes="deck primary" Content="WRITE" Command="{Binding WriteDeviceCommand}"
+                    AutomationProperties.AutomationId="WriteDevice" AutomationProperties.Name="Write configuration to device"
                     ToolTip.Tip="Push editor dump to the FCB1010"/>
             <Button Classes="deck" Content="LIVE" Classes.active="{Binding IsLiveMode}"
+                    AutomationProperties.AutomationId="ToggleLivePreview" AutomationProperties.Name="Toggle live MIDI preview"
                     Command="{Binding ToggleLiveCommand}"
                     ToolTip.Tip="Preview MIDI while pressing pedals"/>
           </StackPanel>
@@ -174,10 +190,14 @@
 
           <!-- Archive — always available -->
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <Button Classes="deck" Content="OPEN" Command="{Binding OpenCommand}" ToolTip.Tip="Open project or SysEx"/>
-            <Button Classes="deck" Content="SAVE" Command="{Binding SaveCommand}" ToolTip.Tip="Save project"/>
-            <Button Classes="deck icon" Content="↶" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
-            <Button Classes="deck icon" Content="↷" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}"/>
+            <Button Classes="deck" Content="OPEN" Command="{Binding OpenCommand}" ToolTip.Tip="Open project or SysEx"
+                    AutomationProperties.AutomationId="OpenFile" AutomationProperties.Name="Open project or SysEx file"/>
+            <Button Classes="deck" Content="SAVE" Command="{Binding SaveCommand}" ToolTip.Tip="Save project"
+                    AutomationProperties.AutomationId="SaveFile" AutomationProperties.Name="Save current file"/>
+            <Button Classes="deck icon" Content="↶" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"
+                    ToolTip.Tip="Undo (Ctrl+Z)" AutomationProperties.AutomationId="Undo" AutomationProperties.Name="Undo"/>
+            <Button Classes="deck icon" Content="↷" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}"
+                    ToolTip.Tip="Redo (Ctrl+Y)" AutomationProperties.AutomationId="Redo" AutomationProperties.Name="Redo"/>
           </StackPanel>
         </StackPanel>
       </Grid>
@@ -228,12 +248,14 @@
                   </StackPanel>
                   <TextBlock Classes="stageEyebrow" Text="BANK · PRESET" Margin="0,0,0,4" Opacity="0.65"/>
                   <TextBox Classes="stageName" Text="{Binding BankName}" PlaceholderText="Bank name…"
+                           AutomationProperties.AutomationId="BankName" AutomationProperties.Name="Bank name"
                            ToolTip.Tip="Editor-only bank name; stored in project/local metadata, not on the pedal" FontSize="11" Margin="0,0,0,6"/>
                   <Border Background="#12161B" CornerRadius="4" Padding="6,3" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="SemiBold"
                                Foreground="{DynamicResource StageTeal}" Text="{Binding RoleLabel}" LetterSpacing="1"/>
                   </Border>
                   <TextBox Classes="stageName" Text="{Binding PresetName}" PlaceholderText="Preset name…"
+                           AutomationProperties.AutomationId="PresetName" AutomationProperties.Name="Preset name"
                            ToolTip.Tip="Editor-only preset name; stored in project/local metadata, not on the pedal" FontSize="13"/>
                   <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" Foreground="#5C656E"
                              Text="{Binding FlowText}" TextWrapping="Wrap" Margin="0,8,0,0" MaxLines="3"/>
@@ -257,12 +279,15 @@
                         <DataTemplate x:DataType="vm:MidiActionItemViewModel">
                           <Border Classes="midiModule">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
+                                        AutomationProperties.Name="{Binding SlotLabel, StringFormat={}{0} enabled}"/>
                               <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
                                          Foreground="{DynamicResource StageTeal}" Text="{Binding SlotLabel}"
                                          VerticalAlignment="Center"/>
                               <TextBlock Classes="midi" Text="{Binding ChannelLabel}" VerticalAlignment="Center"/>
                               <ctrl:ScrubValueField Width="44" Minimum="0" Maximum="127"
+                                                    AutomationProperties.AutomationId="{Binding SlotLabel, StringFormat={}{0}Value}"
+                                                    AutomationProperties.Name="{Binding SlotLabel, StringFormat={}{0} program value}"
                                                     Value="{Binding Primary, Mode=TwoWay}" FormatString="000"/>
                             </StackPanel>
                           </Border>
@@ -300,13 +325,18 @@
                         <DataTemplate x:DataType="vm:MidiActionItemViewModel">
                           <Border Classes="midiModule">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                              <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
+                                        AutomationProperties.Name="{Binding SlotLabel, StringFormat={}{0} enabled}"/>
                               <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
                                          Foreground="{DynamicResource StageAmber}" Text="{Binding SlotLabel}"
                                          VerticalAlignment="Center"/>
                               <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                    AutomationProperties.AutomationId="{Binding SlotLabel, StringFormat={}{0}Controller}"
+                                                    AutomationProperties.Name="{Binding SlotLabel, StringFormat={}{0} controller number}"
                                                     Value="{Binding Primary, Mode=TwoWay}" FormatString="000" ToolTip.Tip="CC# · drag ↕ · dbl-click"/>
                               <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                    AutomationProperties.AutomationId="{Binding SlotLabel, StringFormat={}{0}Value}"
+                                                    AutomationProperties.Name="{Binding SlotLabel, StringFormat={}{0} controller value}"
                                                     Value="{Binding Secondary, Mode=TwoWay}" FormatString="000" ToolTip.Tip="Value · drag ↕ · dbl-click"/>
                             </StackPanel>
                           </Border>
@@ -338,10 +368,12 @@
                           <Panel>
                             <Border Classes="midiModule" IsVisible="{Binding Enabled}">
                               <StackPanel Orientation="Horizontal" Spacing="6">
-                                <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"/>
+                                <CheckBox Classes="compact" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
+                                          AutomationProperties.Name="MIDI note enabled"/>
                                 <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="9" FontWeight="Bold"
                                            Foreground="#E8D5A3" Text="NOTE" VerticalAlignment="Center"/>
                                 <ctrl:ScrubValueField Width="44" Minimum="0" Maximum="127"
+                                                      AutomationProperties.AutomationId="MidiNoteValue" AutomationProperties.Name="MIDI note value"
                                                       Value="{Binding Primary, Mode=TwoWay}" FormatString="000"/>
                               </StackPanel>
                             </Border>
@@ -367,11 +399,13 @@
                                          VerticalAlignment="Center"/>
                       <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionAEnabled}" VerticalAlignment="Center"/>
+                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionAEnabled}" VerticalAlignment="Center"
+                                    AutomationProperties.AutomationId="ExpressionAEnabled" AutomationProperties.Name="Expression pedal A enabled"/>
                           <TextBlock Classes="laneLabel" Text="EXP A" Foreground="{DynamicResource StageAmber}"/>
                           <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
                                      Text="CC" VerticalAlignment="Center"/>
                           <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                AutomationProperties.AutomationId="ExpressionAController" AutomationProperties.Name="Expression A controller number"
                                                 Value="{Binding ExpressionAController, Mode=TwoWay}" FormatString="000"
                                                 IsEnabled="{Binding ExpressionAEnabled}"/>
                         </StackPanel>
@@ -379,12 +413,14 @@
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
                             <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  AutomationProperties.AutomationId="ExpressionAMin" AutomationProperties.Name="Expression A minimum"
                                                   Value="{Binding ExpressionAMin, Mode=TwoWay}" FormatString="000"
                                                   IsEnabled="{Binding ExpressionAEnabled}"/>
                           </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
                             <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  AutomationProperties.AutomationId="ExpressionAMax" AutomationProperties.Name="Expression A maximum"
                                                   Value="{Binding ExpressionAMax, Mode=TwoWay}" FormatString="000"
                                                   IsEnabled="{Binding ExpressionAEnabled}"/>
                           </StackPanel>
@@ -403,11 +439,13 @@
                                          VerticalAlignment="Center"/>
                       <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionBEnabled}" VerticalAlignment="Center"/>
+                          <CheckBox Classes="compact" IsChecked="{Binding ExpressionBEnabled}" VerticalAlignment="Center"
+                                    AutomationProperties.AutomationId="ExpressionBEnabled" AutomationProperties.Name="Expression pedal B enabled"/>
                           <TextBlock Classes="laneLabel" Text="EXP B" Foreground="{DynamicResource StageTeal}"/>
                           <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#5C656E"
                                      Text="CC" VerticalAlignment="Center"/>
                           <ctrl:ScrubValueField Width="40" Minimum="0" Maximum="127"
+                                                AutomationProperties.AutomationId="ExpressionBController" AutomationProperties.Name="Expression B controller number"
                                                 Value="{Binding ExpressionBController, Mode=TwoWay}" FormatString="000"
                                                 IsEnabled="{Binding ExpressionBEnabled}"/>
                         </StackPanel>
@@ -415,12 +453,14 @@
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MIN" VerticalAlignment="Center"/>
                             <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  AutomationProperties.AutomationId="ExpressionBMin" AutomationProperties.Name="Expression B minimum"
                                                   Value="{Binding ExpressionBMin, Mode=TwoWay}" FormatString="000"
                                                   IsEnabled="{Binding ExpressionBEnabled}"/>
                           </StackPanel>
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Classes="stageEyebrow" Text="MAX" VerticalAlignment="Center"/>
                             <ctrl:ScrubValueField Classes="compact" Width="36" Minimum="0" Maximum="127"
+                                                  AutomationProperties.AutomationId="ExpressionBMax" AutomationProperties.Name="Expression B maximum"
                                                   Value="{Binding ExpressionBMax, Mode=TwoWay}" FormatString="000"
                                                   IsEnabled="{Binding ExpressionBEnabled}"/>
                           </StackPanel>
@@ -447,6 +487,7 @@
             <!-- Status rail — single line, no scroll -->
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
               <TextBlock FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#454C52"
+                         AutomationProperties.AutomationId="DeviceStatusMessage" AutomationProperties.LiveSetting="Polite"
                          Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"
                          VerticalAlignment="Center"/>
               <ItemsControl Grid.Column="1" ItemsSource="{Binding PendingChanges}" IsVisible="{Binding HasChanges}"
@@ -616,6 +657,7 @@
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <ToggleButton Classes="flagKey" IsChecked="{Binding DirectSelect}"
+                              AutomationProperties.AutomationId="DirectSelect" AutomationProperties.Name="Direct select"
                               ToolTip.Tip="Direct Select — jump to presets without bank confirmation">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                     <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
@@ -628,6 +670,7 @@
                   </Grid>
                 </ToggleButton>
                 <ToggleButton Classes="flagKey" IsChecked="{Binding RunningStatus}"
+                              AutomationProperties.AutomationId="RunningStatus" AutomationProperties.Name="Running status"
                               ToolTip.Tip="Running Status — omit redundant MIDI status bytes">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                     <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
@@ -640,6 +683,7 @@
                   </Grid>
                 </ToggleButton>
                 <ToggleButton Classes="flagKey" IsChecked="{Binding MidiMerge}"
+                              AutomationProperties.AutomationId="MidiMerge" AutomationProperties.Name="MIDI merge"
                               ToolTip.Tip="MIDI Merge — pass through MIDI from the input port">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                     <Ellipse Classes="jewel" Width="9" Height="9" VerticalAlignment="Center"/>
@@ -799,6 +843,7 @@
           </Grid>
 
           <TextBlock Grid.Row="2" FontFamily="{DynamicResource FontMono}" FontSize="10" Foreground="#454C52"
+                     AutomationProperties.AutomationId="DiagnosticsStatusMessage" AutomationProperties.LiveSetting="Polite"
                      Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"/>
         </Grid>
       </Border>

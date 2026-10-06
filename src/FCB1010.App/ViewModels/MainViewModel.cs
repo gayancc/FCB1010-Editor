@@ -226,6 +226,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public FcbConfiguration Config => _config;
     public int SelectedIndex => Bank * 10 + Footswitch - 1;
     public FcbPreset SelectedPreset => _config.GetPreset(Bank, Footswitch);
+    public bool HasUnsavedProjectChanges => JsonSerializer.Serialize(_config) != JsonSerializer.Serialize(_savedSnapshot);
+
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        if (!HasUnsavedProjectChanges) return true;
+        return await _dialogs.ConfirmAsync(
+            "Discard unsaved changes?",
+            "This editor contains changes that have not been saved to a .fcbproject or .syx file. Close and discard them?");
+    }
 
     [RelayCommand] private void RefreshPorts()
     {
@@ -241,7 +250,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 ?? OutputPorts.FirstOrDefault(p =>
                     !p.Name.Contains("Microsoft GS Wavetable", StringComparison.OrdinalIgnoreCase))
                 ?? OutputPorts.FirstOrDefault();
-            StatusMessage = $"Found {InputPorts.Count} MIDI input(s) and {OutputPorts.Count} MIDI output(s).";
+            StatusMessage = $"Found {PortCount(InputPorts.Count, "input")} and {PortCount(OutputPorts.Count, "output")}.";
         }
         catch (Exception ex) { StatusMessage = "MIDI discovery failed: " + ex.Message; }
     }
@@ -274,7 +283,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             StatusMessage = _firmwareProbe.Message;
             RefreshAll();
         }
-        catch (Exception ex) { await _dialogs.AlertAsync("Connection failed", ex.Message); }
+        catch (Exception ex)
+        {
+            StatusMessage = "Connection failed: " + ex.Message;
+            await _dialogs.AlertAsync("Connection failed", ex.Message);
+        }
     }
 
     private async Task DisconnectAsync()
@@ -333,11 +346,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RefreshChanges();
         var labelsOnly = _deviceSnapshot is not null && PendingChanges.Count > 0 &&
             FcbSysExCodec.Serialize(_config).AsSpan().SequenceEqual(FcbSysExCodec.Serialize(_deviceSnapshot));
+        var changeLabel = PendingChanges.Count == 1 ? "change" : "changes";
         var summary = labelsOnly
-            ? $"{PendingChanges.Count} editor-only name/note change(s). The FCB1010 cannot store text labels. Save them locally for this exact device dump? No SysEx write will be sent."
+            ? $"{PendingChanges.Count} editor-only name/note {changeLabel}. The FCB1010 cannot store text labels. Save them locally for this exact device dump? No SysEx write will be sent."
             : PendingChanges.Count == 0
             ? "Editor matches baseline. Write the full dump anyway?"
-            : $"Write MIDI settings to the FCB1010? {PendingChanges.Count} editor change(s):\n\n" + string.Join("\n", PendingChanges.Take(8).Select(c => $"{c.Scope}: {c.Field} {c.From} → {c.To}"));
+            : $"Write MIDI settings to the FCB1010? {PendingChanges.Count} editor {changeLabel}:\n\n" + string.Join("\n", PendingChanges.Take(8).Select(c => $"{c.Scope}: {c.Field} {c.From} → {c.To}"));
         var footer = labelsOnly
             ? "For portable names, also save a .fcbproject file."
             : "A timestamped backup is created first. Read-back must match byte-for-byte. Names/notes remain local, not on the pedal.";
@@ -457,6 +471,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void SelectFootswitch(int number)
     {
+        if (number is < 1 or > 10) return;
         SurfaceFocus = SurfaceFocus.Pedal;
         Footswitch = number;
         foreach (var fs in Footswitches)
@@ -470,16 +485,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             await Task.Delay(90);
             foreach (var fs in Footswitches) fs.Pressed = false;
         });
+        // A preset selection changes every editor-bound field, not only the MIDI
+        // action rows. Refresh before live preview so names, relays, expressions,
+        // status text, and transmitted labels all describe the new preset.
+        RefreshAll();
         if (Mode == EditorMode.Live)
         {
             _ = SendLivePreviewAsync();
             PulseMidi(rx: false);
             FlowPulse = true;
             LiveTxText = BuildLiveTx();
-            StatusMessage = $"TEST TX · {PresetName} (not writing configuration)";
+            StatusMessage = $"LIVE preview · {PresetName} (configuration is not being written)";
             Dispatcher.UIThread.Post(async () => { await Task.Delay(400); FlowPulse = false; });
         }
-        RefreshInspector();
     }
 
     [RelayCommand]
@@ -543,7 +561,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private async Task SendLivePreviewAsync()
     {
-        if (!Connected) { StatusMessage = "TEST mode: connect MIDI OUT to preview pedal messages."; return; }
+        if (!Connected) { StatusMessage = "Live preview requires a connected MIDI OUT port."; return; }
         try
         {
             foreach (var ev in LiveMidiPreview.BuildPressEvents(_config, SelectedPreset))
@@ -552,16 +570,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var noteOff = LiveMidiPreview.BuildNoteOff(_config, SelectedPreset);
             if (noteOff is not null) await _transport.SendMidiEventAsync(noteOff);
         }
-        catch (Exception ex) { StatusMessage = "TEST TX failed: " + ex.Message; }
+        catch (Exception ex) { StatusMessage = "Live preview failed: " + ex.Message; }
     }
 
     [RelayCommand] private void BankUp() { Bank = Math.Min(9, Bank + 1); RefreshAll(); }
     [RelayCommand] private void BankDown() { Bank = Math.Max(0, Bank - 1); RefreshAll(); }
-    [RelayCommand] private void SelectBank(int bank) { Bank = bank; RefreshAll(); }
+    [RelayCommand] private void SelectBank(int bank) { Bank = Math.Clamp(bank, 0, 9); RefreshAll(); }
 
     [RelayCommand]
     private void SelectMapCell(int index)
     {
+        if (index is < 0 or >= 100) return;
         Bank = index / 10;
         Footswitch = index % 10 + 1;
         SelectWorkspace(WorkspaceKind.Twin);
@@ -724,7 +743,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var ev = LiveMidiPreview.BuildExpressionEvent(_config, exp, channelIndex, value);
             if (ev is not null) await _transport.SendMidiEventAsync(ev);
         }
-        catch (Exception ex) { StatusMessage = "TEST expression TX failed: " + ex.Message; }
+        catch (Exception ex) { StatusMessage = "Live expression preview failed: " + ex.Message; }
     }
 
     private void RefreshAll()
@@ -1008,7 +1027,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         else DeviceSync = FcbSysExCodec.Serialize(_config).AsSpan().SequenceEqual(FcbSysExCodec.Serialize(baseline))
             ? "SYNCED" : "OUT OF SYNC";
         EditorSync = PendingChanges.Count == 0 ? "CLEAN" : $"{PendingChanges.Count} CHANGES";
-        var projectDirty = JsonSerializer.Serialize(_config) != JsonSerializer.Serialize(_savedSnapshot);
+        var projectDirty = HasUnsavedProjectChanges;
         ProjectSync = projectDirty ? "NOT SAVED" : (_currentPath is null ? "LOCAL" : "SAVED");
         CanUndo = _undo.Count > 0;
         CanRedo = _redo.Count > 0;
@@ -1091,6 +1110,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (name.Contains("FCB1010", StringComparison.OrdinalIgnoreCase)) return "FCB1010";
         return name.Length > 12 ? name[..10] + "…" : name;
     }
+
+    private static string PortCount(int count, string direction) =>
+        $"{count} MIDI {direction} port{(count == 1 ? "" : "s")}";
 
     private static FcbConfiguration Clone(FcbConfiguration c) => c.DeepClone();
 

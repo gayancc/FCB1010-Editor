@@ -1,4 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Automation;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
 namespace FCB1010.App.Services;
@@ -22,8 +25,11 @@ public sealed class DesktopDialogService : IAppDialogs
         var dialog = new Window
         {
             Title = title,
-            Width = 420,
-            Height = 200,
+            Width = 560,
+            MinHeight = 220,
+            MaxHeight = 560,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = BuildMessage(message, "OK", null, out var ok),
         };
@@ -38,8 +44,11 @@ public sealed class DesktopDialogService : IAppDialogs
         var dialog = new Window
         {
             Title = title,
-            Width = 480,
-            Height = 240,
+            Width = 560,
+            MinHeight = 240,
+            MaxHeight = 560,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
         };
         dialog.Content = BuildMessage(message, "Confirm", "Cancel", out var ok, out var cancel);
@@ -73,26 +82,31 @@ public sealed class DesktopDialogService : IAppDialogs
         return file?.TryGetLocalPath();
     }
 
-    private static StackPanel BuildMessage(string message, string okText, string? cancelText, out Button ok)
+    private static Control BuildMessage(string message, string okText, string? cancelText, out Button ok)
         => BuildMessage(message, okText, cancelText, out ok, out _);
 
-    private static StackPanel BuildMessage(string message, string okText, string? cancelText, out Button ok, out Button? cancel)
+    private static Control BuildMessage(string message, string okText, string? cancelText, out Button ok, out Button? cancel)
     {
         ok = new Button { Content = okText, MinWidth = 88 };
         cancel = cancelText is null ? null : new Button { Content = cancelText, MinWidth = 88 };
-        var buttons = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
+        ok.SetValue(AutomationProperties.AutomationIdProperty, "DialogPrimary");
+        ok.SetValue(AutomationProperties.NameProperty, okText);
+        cancel?.SetValue(AutomationProperties.AutomationIdProperty, "DialogCancel");
+        if (cancel is not null) cancel.SetValue(AutomationProperties.NameProperty, cancelText);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
         if (cancel is not null) buttons.Children.Add(cancel);
         buttons.Children.Add(ok);
-        return new StackPanel
+        var root = new DockPanel { Margin = new Avalonia.Thickness(20) };
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        root.Children.Add(buttons);
+        root.Children.Add(new ScrollViewer
         {
-            Margin = new Avalonia.Thickness(18),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                buttons,
-            },
-        };
+            MaxHeight = 420,
+            Margin = new Avalonia.Thickness(0, 0, 0, 18),
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+        });
+        return root;
     }
 }
 

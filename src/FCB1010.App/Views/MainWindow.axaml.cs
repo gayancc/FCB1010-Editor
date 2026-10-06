@@ -7,9 +7,20 @@ namespace FCB1010.App.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _closeConfirmed;
+
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    private async void OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_closeConfirmed || DataContext is not MainViewModel vm) return;
+        e.Cancel = true;
+        if (!await vm.ConfirmCloseAsync()) return;
+        _closeConfirmed = true;
+        Close();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

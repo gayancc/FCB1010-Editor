@@ -125,7 +125,7 @@ public partial class App : Application
                 bitmap.Render(window);
                 var dir = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-                bitmap.Save(path);
+                bitmap.Save(path, PngBitmapEncoderOptions.Default);
             });
             await Task.Delay(150);
             window.Close();

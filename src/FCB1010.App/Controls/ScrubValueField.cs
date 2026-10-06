@@ -1,5 +1,7 @@
 using System.Globalization;
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
@@ -164,6 +166,26 @@ public sealed class ScrubValueField : Border
 
         RefreshDisplay();
         UpdateChrome();
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new ScrubValueFieldAutomationPeer(this);
+
+    private sealed class ScrubValueFieldAutomationPeer(ScrubValueField owner)
+        : ControlAutomationPeer(owner), IRangeValueProvider
+    {
+        private ScrubValueField Field => (ScrubValueField)Owner;
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Spinner;
+        protected override string GetClassNameCore() => nameof(ScrubValueField);
+        public bool IsReadOnly => !Field.IsEnabled;
+        public double Minimum => Field.Minimum;
+        public double Maximum => Field.Maximum;
+        public double Value => Field.Value;
+        public double LargeChange => 10;
+        public double SmallChange => 1;
+        public void SetValue(double value)
+        {
+            if (!IsReadOnly) Field.Value = (int)Math.Round(value);
+        }
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

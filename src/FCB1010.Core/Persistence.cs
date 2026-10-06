@@ -12,21 +12,62 @@ public sealed class FcbProject
 
 public static class ProjectPersistence
 {
+    private const long MaxProjectBytes = 16 * 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     public static async Task SaveProjectAsync(string path, FcbConfiguration config, CancellationToken ct = default)
     {
+        ThrowIfInvalid(config);
         var project = new FcbProject { Configuration = config, RawSysExBase64 = config.SourceSysEx is null ? null : Convert.ToBase64String(config.SourceSysEx) };
-        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(project, JsonOptions), ct);
+        await AtomicWriteAsync(path, JsonSerializer.Serialize(project, JsonOptions), ct);
     }
     public static async Task<FcbConfiguration> LoadProjectAsync(string path, CancellationToken ct = default)
     {
+        if (new FileInfo(path).Length > MaxProjectBytes)
+            throw new InvalidDataException("Project file is larger than the 16 MB safety limit.");
         var project = JsonSerializer.Deserialize<FcbProject>(await File.ReadAllTextAsync(path, ct), JsonOptions) ?? throw new InvalidDataException("Project JSON is empty.");
         if (project.FormatVersion != 1) throw new InvalidDataException($"Unsupported project format version {project.FormatVersion}.");
-        if (project.RawSysExBase64 is not null) project.Configuration.SourceSysEx = Convert.FromBase64String(project.RawSysExBase64);
+        if (project.Configuration is null) throw new InvalidDataException("Project configuration is missing.");
+        if (project.RawSysExBase64 is not null)
+        {
+            project.Configuration.SourceSysEx = Convert.FromBase64String(project.RawSysExBase64);
+            FcbSysExCodec.ValidateEnvelope(project.Configuration.SourceSysEx);
+        }
+        ThrowIfInvalid(project.Configuration);
         return project.Configuration;
     }
-    public static async Task SaveSysExAsync(string path, FcbConfiguration config, CancellationToken ct = default) => await File.WriteAllBytesAsync(path, FcbSysExCodec.Serialize(config), ct);
+    public static async Task SaveSysExAsync(string path, FcbConfiguration config, CancellationToken ct = default)
+        => await AtomicWriteAsync(path, FcbSysExCodec.Serialize(config), ct);
     public static async Task<FcbConfiguration> LoadSysExAsync(string path, FirmwareFamily family = FirmwareFamily.Unknown, CancellationToken ct = default) => FcbSysExCodec.Parse(await File.ReadAllBytesAsync(path, ct), family);
+
+    private static void ThrowIfInvalid(FcbConfiguration config)
+    {
+        var errors = ConfigurationValidator.Validate(config).Where(issue => issue.IsError).ToArray();
+        if (errors.Length > 0)
+            throw new InvalidDataException("Invalid FCB1010 configuration:" + Environment.NewLine +
+                string.Join(Environment.NewLine, errors.Take(20).Select(issue => $"{issue.Path}: {issue.Message}")));
+    }
+
+    private static async Task AtomicWriteAsync(string path, string content, CancellationToken ct)
+    {
+        var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await File.WriteAllTextAsync(temporary, content, ct);
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally { File.Delete(temporary); }
+    }
+
+    private static async Task AtomicWriteAsync(string path, byte[] content, CancellationToken ct)
+    {
+        var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await File.WriteAllBytesAsync(temporary, content, ct);
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally { File.Delete(temporary); }
+    }
 }
 
 public sealed record DumpDifference(int Offset, byte OldByte, byte NewByte, byte Xor, string? LikelyField);

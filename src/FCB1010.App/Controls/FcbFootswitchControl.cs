@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -298,5 +300,29 @@ public sealed class FcbFootswitchControl : Control
     {
         base.OnPointerCaptureLost(e);
         if (IsPressed) { IsPressed = false; InvalidateVisual(); }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key is not (Key.Space or Key.Enter)) return;
+        Invoke();
+        e.Handled = true;
+    }
+
+    internal void Invoke()
+    {
+        if (Command?.CanExecute(CommandParameter) == true)
+            Command.Execute(CommandParameter);
+    }
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new FcbFootswitchAutomationPeer(this);
+
+    private sealed class FcbFootswitchAutomationPeer(FcbFootswitchControl owner)
+        : ControlAutomationPeer(owner), IInvokeProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+        protected override string GetClassNameCore() => nameof(FcbFootswitchControl);
+        public void Invoke() => ((FcbFootswitchControl)Owner).Invoke();
     }
 }

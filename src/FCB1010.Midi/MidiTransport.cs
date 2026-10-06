@@ -115,7 +115,7 @@ public sealed class DryWetMidiTransport : IMidiTransport
         {
             ct.ThrowIfCancellationRequested();
             lock (_sendGate) _output.SendEvent(midiEvent);
-            Log("OUT", midiEvent.EventType.ToString(), 0, "Live/test channel-voice event.", midiEvent.ToString());
+            Log("OUT", midiEvent.EventType.ToString(), 0, "Live preview channel-voice event.", midiEvent.ToString());
         }, ct);
     }
 
